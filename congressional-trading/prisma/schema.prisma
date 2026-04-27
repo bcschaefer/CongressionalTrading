@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model bill_trade_links {
+  id             Int    @id @default(autoincrement())
+  bill_id        Int
+  trade_id       Int
+  relation_score Float?
+  trades         trades @relation(fields: [trade_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  bills          bills  @relation(fields: [bill_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model bills {
+  id               Int                @id @default(autoincrement())
+  number           String
+  congress         Int
+  bill_type        String?
+  title            String?
+  introduced_date  String?
+  latest_action    String?
+  summary          String?
+  full_text_url    String?
+  full_text        Bytes?
+  bill_trade_links bill_trade_links[]
+}
+
+model committee_meetings {
+  id             Int              @id @default(autoincrement())
+  congress       Int
+  event_id       String           @unique(map: "sqlite_autoindex_committee_meetings_1")
+  committee_id   String
+  meeting_date   String
+  committees     committees       @relation(fields: [committee_id], references: [committee_id], onDelete: NoAction, onUpdate: NoAction)
+  meeting_trades meeting_trades[]
+}
+
+model committee_memberships {
+  id                Int        @id @default(autoincrement())
+  bioguide          String
+  committee_id      String
+  subcommittee_name String?
+  title             String?
+  rank              Int?
+  committees        committees @relation(fields: [committee_id], references: [committee_id], onDelete: NoAction, onUpdate: NoAction)
+  members           members    @relation(fields: [bioguide], references: [bioguide], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model committees {
+  committee_id          String                 @id
+  name                  String
+  chamber               String?
+  committee_type        String?
+  committee_meetings    committee_meetings[]
+  committee_memberships committee_memberships[]
+}
+
+model disclosures {
+  id               Int      @id @default(autoincrement())
+  doc_id           String?
+  bioguide         String
+  ticker           String?
+  transaction_type String?
+  trade_date       String?
+  amount_range     String?
+  sector           String?
+  members          members  @relation(fields: [bioguide], references: [bioguide], onDelete: NoAction, onUpdate: NoAction)
+  trades           trades[]
+}
+
+model meeting_trades {
+  id                 Int                @id @default(autoincrement())
+  meeting_id         Int
+  trade_id           Int
+  trades             trades             @relation(fields: [trade_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  committee_meetings committee_meetings @relation(fields: [meeting_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model members {
+  bioguide              String                 @id
+  full_name             String
+  party                 String?
+  chamber               String?
+  is_active             Boolean                @default(true)
+  committee_memberships committee_memberships[]
+  disclosures           disclosures[]
+  annual_disclosures    annual_financial_disclosures[]
+}
+
+model annual_financial_disclosures {
+  id             Int      @id @default(autoincrement())
+  doc_id         String   @unique
+  bioguide       String?
+  first_name     String?
+  last_name      String?
+  full_name      String
+  state_district String?
+  filing_type    String
+  filing_year    Int
+  filing_date    String?
+  source_url     String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  members members? @relation(fields: [bioguide], references: [bioguide], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model trade_performance {
+  trade_id        Int    @id @default(autoincrement())
+  absolute_change Float?
+  percent_change  Float?
+  absolute_amount Float?
+  trades          trades @relation(fields: [trade_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model trades {
+  id                Int                @id @default(autoincrement())
+  disclosure_id     Int?
+  ticker            String?
+  trade_date        String?
+  trade_type        String?
+  amount            Float?
+  price_start       Float?
+  price_end         Float?
+  bill_trade_links  bill_trade_links[]
+  meeting_trades    meeting_trades[]
+  trade_performance trade_performance?
+  disclosures       disclosures?       @relation(fields: [disclosure_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model ptr_sync_runs {
+  id              Int      @id @default(autoincrement())
+  started_at      DateTime @default(now())
+  finished_at     DateTime?
+  status          String
+  years_processed String?
+  docs_discovered Int      @default(0)
+  docs_succeeded  Int      @default(0)
+  docs_failed     Int      @default(0)
+  notes           String?
+}
+
+model ptr_failed_docs {
+  id               Int      @id @default(autoincrement())
+  doc_id           String   @unique
+  year             Int
+  reason           String
+  first_attempt_at DateTime @default(now())
+  last_attempt_at  DateTime @updatedAt
+}
