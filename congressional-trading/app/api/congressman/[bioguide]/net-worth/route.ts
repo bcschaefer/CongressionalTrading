@@ -270,6 +270,8 @@ export async function GET(
       select: { doc_id: true, filing_year: true, filing_date: true, source_url: true },
     });
 
+    console.log(`[net-worth] ${bioguide} bioguide lookup: ${disclosure ? 'FOUND' : 'NOT FOUND'}`);
+
     if (!disclosure) {
       const { first, last } = extractFirstLast(member.full_name);
       if (first && last) {
