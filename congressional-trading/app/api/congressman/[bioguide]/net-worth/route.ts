@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { execFile } from 'node:child_process';
-import path from 'node:path';
-import { promisify } from 'node:util';
 
 export const runtime = 'nodejs';
-
-const execFileAsync = promisify(execFile);
 
 export type AssetEntry = {
   name: string;
@@ -98,16 +93,24 @@ function parseRangeEnd(str: string, low: number): { low: number; high: number; m
 }
 
 async function extractTextFromPdf(pdfUrl: string): Promise<string> {
-  const scriptPath = path.join(process.cwd(), 'scripts', 'extract-pdf-text.js');
-  const { stdout } = await execFileAsync(process.execPath, [scriptPath, pdfUrl], {
-    maxBuffer: 10 * 1024 * 1024,
-  });
-
-  const parsed = JSON.parse(stdout) as { text?: string; error?: string };
-  if (parsed.error) {
-    throw new Error(parsed.error);
+  const response = await fetch(pdfUrl);
+  if (!response.ok) {
+    throw new Error(`PDF unavailable: ${response.status}`);
   }
-  return parsed.text ?? '';
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const pdfParseModule: any = await import('pdf-parse');
+  const PDFParse = pdfParseModule.PDFParse ?? pdfParseModule.default?.PDFParse;
+
+  if (!PDFParse) {
+    throw new Error('PDF parser unavailable');
+  }
+
+  const parser = new PDFParse({ data: buffer });
+  const result = await parser.getText();
+  await parser.destroy();
+
+  return result.text ?? '';
 }
 
 function parsePdfText(text: string): { assets: AssetEntry[]; liabilities: LiabilityEntry[] } {
@@ -264,7 +267,7 @@ export async function GET(
     let disclosure = await prisma.annual_financial_disclosures.findFirst({
       where: { bioguide },
       orderBy: [{ filing_year: 'desc' }, { filing_date: 'desc' }, { id: 'desc' }],
-      select: { doc_id: true, filing_year: true, filing_date: true },
+      select: { doc_id: true, filing_year: true, filing_date: true, source_url: true },
     });
 
     if (!disclosure) {
@@ -293,6 +296,7 @@ export async function GET(
             doc_id: true,
             filing_year: true,
             filing_date: true,
+            source_url: true,
             first_name: true,
             last_name: true,
           },
@@ -310,6 +314,7 @@ export async function GET(
             doc_id: picked.doc_id,
             filing_year: picked.filing_year,
             filing_date: picked.filing_date,
+            source_url: picked.source_url,
           };
         }
       }
@@ -326,7 +331,9 @@ export async function GET(
       });
     }
 
-    const pdfUrl = `https://disclosures-clerk.house.gov/public_disc/financial-pdfs/${disclosure.filing_year}/${disclosure.doc_id}.pdf`;
+    const pdfUrl = disclosure.source_url && /^https?:\/\//i.test(disclosure.source_url)
+      ? disclosure.source_url
+      : `https://disclosures-clerk.house.gov/public_disc/financial-pdfs/${disclosure.filing_year}/${disclosure.doc_id}.pdf`;
     const pdfText = await extractTextFromPdf(pdfUrl);
     const { assets, liabilities } = parsePdfText(pdfText);
 
@@ -356,6 +363,14 @@ export async function GET(
     });
   } catch (error) {
     console.error('[net-worth] Failed:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({
+      filing: null,
+      assets: [],
+      liabilities: [],
+      stocks: [],
+      byCategory: {},
+      summary: null,
+      error: 'Failed to calculate net worth for this member.',
+    });
   }
 }

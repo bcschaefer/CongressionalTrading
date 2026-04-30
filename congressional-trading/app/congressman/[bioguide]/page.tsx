@@ -113,7 +113,17 @@ export default function CongressmanPage() {
     fetch(`/api/congressman/${bioguide}/net-worth`)
       .then((r) => r.json())
       .then((data: NetWorthData) => setNetWorth(data))
-      .catch(() => {});
+      .catch(() => {
+        setNetWorth({
+          filing: null,
+          assets: [],
+          liabilities: [],
+          stocks: [],
+          byCategory: {},
+          summary: null,
+          error: 'Failed to load net worth data.',
+        });
+      });
   }, [bioguide, loading]);
 
   const photoUrl = `/api/member-photo/${bioguide}`;
