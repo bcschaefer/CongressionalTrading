@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build",
+    "typecheck": "tsc --noEmit --pretty false",
     "start": "next start",
     "lint": "eslint",
     "sync:senate:annual": "node scripts/sync-senate-annual.js",

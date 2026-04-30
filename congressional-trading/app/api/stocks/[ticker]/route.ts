@@ -140,7 +140,7 @@ export async function GET(
                 where: { id: t.id },
                 data: { price_start: priceStart },
               })
-              .catch((error) => {
+              .catch((error: unknown) => {
                 console.warn(`Failed to persist price_start for trade ${t.id}:`, error);
               });
           }
