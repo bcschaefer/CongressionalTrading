@@ -99,7 +99,12 @@ async function extractTextFromPdf(pdfUrl: string): Promise<string> {
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
-  const { PDFParse } = await import('pdf-parse');
+  const pdfParseModule: any = await import('pdf-parse');
+  const PDFParse = pdfParseModule.PDFParse ?? pdfParseModule.default?.PDFParse;
+
+  if (!PDFParse) {
+    throw new Error('PDF parser unavailable');
+  }
 
   const parser = new PDFParse({ data: buffer });
   const result = await parser.getText();
@@ -265,11 +270,8 @@ export async function GET(
       select: { doc_id: true, filing_year: true, filing_date: true, source_url: true },
     });
 
-    console.log(`[net-worth] ${bioguide}: bioguide lookup found ${disclosure ? 1 : 0} disclosure(s)`);
-
     if (!disclosure) {
       const { first, last } = extractFirstLast(member.full_name);
-      console.log(`[net-worth] ${bioguide}: name-based lookup for "${member.full_name}" (first="${first}" last="${last}")`);
       if (first && last) {
         const candidates = await prisma.annual_financial_disclosures.findMany({
           where: {
@@ -300,7 +302,6 @@ export async function GET(
           },
         });
 
-        console.log(`[net-worth] ${bioguide}: found ${candidates.length} candidates by name`);
         const strict = candidates.find(
           (c: (typeof candidates)[number]) =>
             (c.first_name ?? '').toLowerCase().startsWith(first) &&
@@ -309,7 +310,6 @@ export async function GET(
 
         const picked = strict ?? candidates[0];
         if (picked) {
-          console.log(`[net-worth] ${bioguide}: picked disclosure ${picked.doc_id} from ${picked.filing_year}`);
           disclosure = {
             doc_id: picked.doc_id,
             filing_year: picked.filing_year,
@@ -321,7 +321,6 @@ export async function GET(
     }
 
     if (!disclosure) {
-      console.log(`[net-worth] ${bioguide}: no disclosure found, returning empty`);
       return NextResponse.json({
         assets: [],
         liabilities: [],
@@ -335,12 +334,8 @@ export async function GET(
     const pdfUrl = disclosure.source_url && /^https?:\/\//i.test(disclosure.source_url)
       ? disclosure.source_url
       : `https://disclosures-clerk.house.gov/public_disc/financial-pdfs/${disclosure.filing_year}/${disclosure.doc_id}.pdf`;
-    
-    console.log(`[net-worth] ${bioguide}: extracting from ${pdfUrl.substring(0, 80)}...`);
     const pdfText = await extractTextFromPdf(pdfUrl);
-    console.log(`[net-worth] ${bioguide}: extracted ${pdfText.length} chars from PDF`);
     const { assets, liabilities } = parsePdfText(pdfText);
-    console.log(`[net-worth] ${bioguide}: parsed ${assets.length} assets, ${liabilities.length} liabilities`);
 
     const totalAssets = assets.reduce((s, a) => s + a.valueMid, 0);
     const totalLiabilities = liabilities.reduce((s, l) => s + l.valueMid, 0);
