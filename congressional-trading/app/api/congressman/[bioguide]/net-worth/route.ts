@@ -299,7 +299,7 @@ export async function GET(
         });
 
         const strict = candidates.find(
-          (c) =>
+          (c: (typeof candidates)[number]) =>
             (c.first_name ?? '').toLowerCase().startsWith(first) &&
             (c.last_name ?? '').toLowerCase() === last
         );
