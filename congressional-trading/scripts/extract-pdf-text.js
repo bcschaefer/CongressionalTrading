@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { PDFParse } = require('pdf-parse');
+const pdfParse = require('pdf-parse');
 
 async function main() {
   const url = process.argv[2];
@@ -17,9 +17,7 @@ async function main() {
     }
 
     const buffer = Buffer.from(await response.arrayBuffer());
-    const parser = new PDFParse({ data: buffer });
-    const result = await parser.getText();
-    await parser.destroy();
+    const result = await pdfParse(buffer);
 
     process.stdout.write(JSON.stringify({ text: result.text ?? '' }));
   } catch (error) {
