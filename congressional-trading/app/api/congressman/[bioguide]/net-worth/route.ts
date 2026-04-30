@@ -99,12 +99,7 @@ async function extractTextFromPdf(pdfUrl: string): Promise<string> {
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
-  const pdfParseModule: any = await import('pdf-parse/node');
-  const PDFParse = pdfParseModule.PDFParse ?? pdfParseModule.default?.PDFParse;
-
-  if (!PDFParse) {
-    throw new Error('PDF parser unavailable');
-  }
+  const { PDFParse } = await import('pdf-parse');
 
   const parser = new PDFParse({ data: buffer });
   const result = await parser.getText();
