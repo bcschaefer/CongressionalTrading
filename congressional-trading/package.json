@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
+    "prisma:generate": "prisma generate",
+    "postinstall": "pnpm prisma:generate",
+    "prebuild": "pnpm prisma:generate",
     "build": "next build",
     "typecheck": "tsc --noEmit --pretty false",
     "start": "next start",
@@ -33,6 +36,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
