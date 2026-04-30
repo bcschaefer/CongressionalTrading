@@ -143,40 +143,41 @@ export async function GET(
       console.warn('Annual disclosures query skipped:', error);
     }
 
-    const trades = disclosures
-      .flatMap<{
-        id: number;
-        bioguide: string;
-        type: string;
-        amount: number;
-        ticker: string;
-        date: string;
-        sector: string;
-      }>((row: (typeof disclosures)[number]) => {
-        if (row.trades.length === 0) {
-          return [
-            {
-              id: row.id,
-              bioguide: row.bioguide,
-              type: (row.transaction_type ?? 'UNKNOWN').toUpperCase(),
-              amount: parseAmountRange(row.amount_range),
-              ticker: row.ticker ?? 'N/A',
-              date: row.trade_date ?? '',
-              sector: row.sector ?? '',
-            },
-          ];
-        }
-        return row.trades.map((trade: (typeof row.trades)[number]) => ({
-          id: trade.id,
-          bioguide: row.bioguide,
-          type: (trade.trade_type ?? row.transaction_type ?? 'UNKNOWN').toUpperCase(),
-          amount: trade.amount ?? parseAmountRange(row.amount_range),
-          ticker: trade.ticker ?? row.ticker ?? 'N/A',
-          date: trade.trade_date ?? row.trade_date ?? '',
-          sector: row.sector ?? '',
-        }));
-      })
-      .filter((t: { id: number; bioguide: string; type: string; amount: number; ticker: string; date: string; sector: string }) => t.ticker !== 'N/A' && t.amount > 0);
+    type TradeRow = {
+      id: number;
+      bioguide: string;
+      type: string;
+      amount: number;
+      ticker: string;
+      date: string;
+      sector: string;
+    };
+
+    const allTrades: TradeRow[] = disclosures.flatMap((row: (typeof disclosures)[number]) => {
+      if (row.trades.length === 0) {
+        return [
+          {
+            id: row.id,
+            bioguide: row.bioguide,
+            type: (row.transaction_type ?? 'UNKNOWN').toUpperCase(),
+            amount: parseAmountRange(row.amount_range),
+            ticker: row.ticker ?? 'N/A',
+            date: row.trade_date ?? '',
+            sector: row.sector ?? '',
+          } satisfies TradeRow,
+        ];
+      }
+      return row.trades.map((trade: (typeof row.trades)[number]): TradeRow => ({
+        id: trade.id,
+        bioguide: row.bioguide,
+        type: (trade.trade_type ?? row.transaction_type ?? 'UNKNOWN').toUpperCase(),
+        amount: trade.amount ?? parseAmountRange(row.amount_range),
+        ticker: trade.ticker ?? row.ticker ?? 'N/A',
+        date: trade.trade_date ?? row.trade_date ?? '',
+        sector: row.sector ?? '',
+      }));
+    });
+    const trades = allTrades.filter((t: TradeRow) => t.ticker !== 'N/A' && t.amount > 0);
 
     return NextResponse.json({
       member: { ...member, party, state, district, is_active: member.is_active ?? true, termStart, termEnd },

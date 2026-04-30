@@ -52,35 +52,34 @@ export async function GET() {
       },
     });
 
-    const trades: TradeResponse[] = rows
-      .flatMap<TradeResponse>((row: (typeof rows)[number]) => {
-        if (row.trades.length === 0) {
-          return [
-            {
-              id: row.id,
-              bioguide: row.bioguide,
-              congressman: row.members.full_name,
-              type: (row.transaction_type ?? 'UNKNOWN').toUpperCase(),
-              amount: parseAmountRange(row.amount_range),
-              ticker: row.ticker ?? 'N/A',
-              date: row.trade_date ?? '',
-              description: row.sector ? `${row.sector} disclosure` : 'Disclosure filing',
-            },
-          ];
-        }
+    const allTrades: TradeResponse[] = rows.flatMap((row: (typeof rows)[number]) => {
+      if (row.trades.length === 0) {
+        return [
+          {
+            id: row.id,
+            bioguide: row.bioguide,
+            congressman: row.members.full_name,
+            type: (row.transaction_type ?? 'UNKNOWN').toUpperCase(),
+            amount: parseAmountRange(row.amount_range),
+            ticker: row.ticker ?? 'N/A',
+            date: row.trade_date ?? '',
+            description: row.sector ? `${row.sector} disclosure` : 'Disclosure filing',
+          } satisfies TradeResponse,
+        ];
+      }
 
-        return row.trades.map((trade: (typeof row.trades)[number]) => ({
-          id: trade.id,
-          bioguide: row.bioguide,
-          congressman: row.members.full_name,
-          type: (trade.trade_type ?? row.transaction_type ?? 'UNKNOWN').toUpperCase(),
-          amount: trade.amount ?? parseAmountRange(row.amount_range),
-          ticker: trade.ticker ?? row.ticker ?? 'N/A',
-          date: trade.trade_date ?? row.trade_date ?? '',
-          description: row.sector ? `${row.sector} disclosure` : 'Disclosure filing',
-        }));
-      })
-      .filter((trade) => trade.ticker !== 'N/A' && trade.amount > 0);
+      return row.trades.map((trade: (typeof row.trades)[number]): TradeResponse => ({
+        id: trade.id,
+        bioguide: row.bioguide,
+        congressman: row.members.full_name,
+        type: (trade.trade_type ?? row.transaction_type ?? 'UNKNOWN').toUpperCase(),
+        amount: trade.amount ?? parseAmountRange(row.amount_range),
+        ticker: trade.ticker ?? row.ticker ?? 'N/A',
+        date: trade.trade_date ?? row.trade_date ?? '',
+        description: row.sector ? `${row.sector} disclosure` : 'Disclosure filing',
+      }));
+    });
+    const trades = allTrades.filter((trade: TradeResponse) => trade.ticker !== 'N/A' && trade.amount > 0);
 
     return NextResponse.json({ trades }, {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
