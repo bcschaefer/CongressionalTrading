@@ -333,8 +333,13 @@ export async function GET(
       });
     }
 
-    const pdfUrl = disclosure.source_url && /^https?:\/\//i.test(disclosure.source_url)
-      ? disclosure.source_url
+    const sourceIsPdf =
+      !!disclosure.source_url &&
+      /^https?:\/\//i.test(disclosure.source_url) &&
+      /\.pdf(?:\?|#|$)/i.test(disclosure.source_url);
+
+    const pdfUrl = sourceIsPdf
+      ? disclosure.source_url!
       : `https://disclosures-clerk.house.gov/public_disc/financial-pdfs/${disclosure.filing_year}/${disclosure.doc_id}.pdf`;
     const pdfText = await extractTextFromPdf(pdfUrl);
     const { assets, liabilities } = parsePdfText(pdfText);
