@@ -53,7 +53,7 @@ export async function GET() {
     });
 
     const trades: TradeResponse[] = rows
-      .flatMap((row: (typeof rows)[number]) => {
+      .flatMap<TradeResponse>((row: (typeof rows)[number]) => {
         if (row.trades.length === 0) {
           return [
             {
