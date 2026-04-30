@@ -53,7 +53,7 @@ export async function GET() {
     });
 
     const trades: TradeResponse[] = rows
-      .flatMap((row) => {
+      .flatMap((row: (typeof rows)[number]) => {
         if (row.trades.length === 0) {
           return [
             {
@@ -69,7 +69,7 @@ export async function GET() {
           ];
         }
 
-        return row.trades.map((trade) => ({
+        return row.trades.map((trade: (typeof row.trades)[number]) => ({
           id: trade.id,
           bioguide: row.bioguide,
           congressman: row.members.full_name,
