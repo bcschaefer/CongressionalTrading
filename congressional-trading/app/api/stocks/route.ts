@@ -46,9 +46,8 @@ export async function GET() {
       buySellMap.set(row.ticker, existing);
     }
 
-    const stocks = rows
-      .filter((r) => r.ticker && r.ticker.trim() !== '')
-      .map((r) => {
+    const filteredRows = rows.filter((r: (typeof rows)[number]) => r.ticker && r.ticker.trim() !== '');
+    const stocks = filteredRows.map((r: (typeof filteredRows)[number]) => {
         const ticker = r.ticker!;
         const bs = buySellMap.get(ticker) ?? { buyAmount: 0, sellAmount: 0, buyCount: 0, sellCount: 0 };
         return {

@@ -57,7 +57,7 @@ export async function GET(req: Request) {
       }),
     ]);
 
-    const memberResults: SearchResult[] = members.map((m) => {
+    const memberResults: SearchResult[] = members.map((m: (typeof members)[number]) => {
       const parts = [m.party, m.chamber, m.is_active ? 'Active' : 'Former'].filter(Boolean);
       return {
         type: 'member',
@@ -67,9 +67,8 @@ export async function GET(req: Request) {
       };
     });
 
-    const stockResults: SearchResult[] = stocks
-      .filter((s) => s.ticker && s.ticker.trim() !== '')
-      .map((s) => ({
+    const filteredStocks = stocks.filter((s: (typeof stocks)[number]) => s.ticker && s.ticker.trim() !== '');
+    const stockResults: SearchResult[] = filteredStocks.map((s: (typeof filteredStocks)[number]) => ({
         type: 'stock',
         label: s.ticker!,
         sublabel: `${s._count.id} trades`,
