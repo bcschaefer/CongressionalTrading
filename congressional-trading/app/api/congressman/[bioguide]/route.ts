@@ -176,7 +176,7 @@ export async function GET(
           sector: row.sector ?? '',
         }));
       })
-      .filter((t) => t.ticker !== 'N/A' && t.amount > 0);
+      .filter((t: { id: number; bioguide: string; type: string; amount: number; ticker: string; date: string; sector: string }) => t.ticker !== 'N/A' && t.amount > 0);
 
     return NextResponse.json({
       member: { ...member, party, state, district, is_active: member.is_active ?? true, termStart, termEnd },
