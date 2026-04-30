@@ -107,7 +107,7 @@ export default function StockPriceChart({ trades }: StockPriceChartProps) {
         d3
           .axisLeft(y)
           .ticks(5)
-          .tickFormat((d) => `$${d.toFixed(0)}`)
+          .tickFormat((d) => `$${Number(d).toFixed(0)}`)
       )
       .selectAll('text')
       .attr('fill', '#6b7280')
@@ -143,7 +143,8 @@ export default function StockPriceChart({ trades }: StockPriceChartProps) {
     };
 
     // Points (circles) for each trade
-    g.selectAll('.trade-point')
+    const points = g
+      .selectAll<SVGCircleElement, (typeof data)[0]>('.trade-point')
       .data(data)
       .enter()
       .append('circle')
@@ -156,7 +157,7 @@ export default function StockPriceChart({ trades }: StockPriceChartProps) {
       .attr('stroke-width', 2);
 
     // Tooltips on hover
-    g.selectAll('.trade-point')
+    points
       .on('mouseenter', function (event, d) {
         d3.select(this).attr('r', 7).attr('stroke-width', 2.5);
         g.append('text')
