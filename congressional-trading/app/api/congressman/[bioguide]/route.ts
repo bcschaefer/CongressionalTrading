@@ -144,7 +144,15 @@ export async function GET(
     }
 
     const trades = disclosures
-      .flatMap((row) => {
+      .flatMap<{
+        id: number;
+        bioguide: string;
+        type: string;
+        amount: number;
+        ticker: string;
+        date: string;
+        sector: string;
+      }>((row: (typeof disclosures)[number]) => {
         if (row.trades.length === 0) {
           return [
             {
@@ -158,7 +166,7 @@ export async function GET(
             },
           ];
         }
-        return row.trades.map((trade) => ({
+        return row.trades.map((trade: (typeof row.trades)[number]) => ({
           id: trade.id,
           bioguide: row.bioguide,
           type: (trade.trade_type ?? row.transaction_type ?? 'UNKNOWN').toUpperCase(),
