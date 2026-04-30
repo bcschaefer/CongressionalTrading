@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 import { prisma } from '@/lib/prisma';
+import { readLocalCache, writeLocalCache } from '@/lib/local-api-cache';
 // @ts-ignore
 import * as yahooFinance from 'yahoo-finance2';
 
@@ -62,6 +63,28 @@ export async function GET(
       return NextResponse.json({ error: 'Ticker not found' }, { status: 404 });
     }
 
+    const priceRequestMap = new Map<string, Promise<number | null>>();
+
+    const getPriceWithLocalCache = async (date: string): Promise<number | null> => {
+      const priceCacheKey = `${upperTicker}:${date}`;
+      const inFlight = priceRequestMap.get(priceCacheKey);
+      if (inFlight) return inFlight;
+
+      const request = (async () => {
+        const cached = await readLocalCache<number>('yahoo-price-open-v1', priceCacheKey);
+        if (cached != null) return cached;
+
+        const fetched = await getHistoricalPrice(upperTicker, date);
+        if (fetched != null) {
+          await writeLocalCache('yahoo-price-open-v1', priceCacheKey, fetched, 86400 * 30);
+        }
+        return fetched;
+      })();
+
+      priceRequestMap.set(priceCacheKey, request);
+      return request;
+    };
+
     // Aggregate by member
     const memberMap = new Map<
       string,
@@ -107,10 +130,20 @@ export async function GET(
           memberMap.set(bioguide, existing);
         }
 
-        // Fetch missing price from yfinance
+        // Fetch missing price from yfinance, then persist so future requests avoid external calls.
         let priceStart = t.price_start;
         if (!priceStart && t.trade_date) {
-          priceStart = await getHistoricalPrice(upperTicker, t.trade_date);
+          priceStart = await getPriceWithLocalCache(t.trade_date);
+          if (priceStart != null) {
+            await prisma.trades
+              .update({
+                where: { id: t.id },
+                data: { price_start: priceStart },
+              })
+              .catch((error) => {
+                console.warn(`Failed to persist price_start for trade ${t.id}:`, error);
+              });
+          }
         }
 
         return {

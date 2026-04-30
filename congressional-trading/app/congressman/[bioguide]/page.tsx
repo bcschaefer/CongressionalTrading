@@ -35,8 +35,6 @@ function partyInfo(party: string | null): { label: string; color: string } {
   if (p === 'D' || p.startsWith('DEM')) return { label: 'Democrat', color: 'bg-blue-500' };
   if (p === 'R' || p.startsWith('REP')) return { label: 'Republican', color: 'bg-red-500' };
   if (p === 'I' || p.startsWith('IND')) return { label: 'Independent', color: 'bg-yellow-400' };
-  if (p === 'L' || p.startsWith('LIB')) return { label: 'Libertarian', color: 'bg-amber-500' };
-  if (p === 'G' || p.startsWith('GRE')) return { label: 'Green', color: 'bg-green-500' };
   return { label: party ?? 'Unknown', color: 'bg-gray-400' };
 }
 

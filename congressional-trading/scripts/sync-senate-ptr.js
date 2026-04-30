@@ -4,480 +4,291 @@ require('dotenv/config');
 
 const fs = require('fs/promises');
 const path = require('path');
-const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-const { Client: PgClient } = require('pg');
+
 const {
-  SenateEfdClient,
+  SENATE_BASE_URL,
   normalizeWhitespace,
-  stripTags,
+  isLikelyPtrTitle,
   parseReportRow,
-  mmddyyyyToIso,
-} = require('./senate-efd-client');
+  createSenateSession,
+  fetchAllReportRows,
+  buildMemberIndex,
+  resolveBioguideForName,
+  extractTransactionsFromReportHtml,
+  createPrismaClient,
+} = require('./senate-efd-common');
 
-const DEFAULT_START_DATE = '01/01/2012';
-const SKIP_LOG_PATH = path.join(process.cwd(), 'logs', 'senate-ptr-skipped.jsonl');
 const CHECKPOINT_PATH = path.join(process.cwd(), 'logs', 'senate-ptr-checkpoint.json');
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+const SKIPPED_LOG_PATH = path.join(process.cwd(), 'logs', 'senate-ptr-skipped.jsonl');
 
 function parseArgs(argv) {
-  const out = {
-    startDate: DEFAULT_START_DATE,
-    endDate: null,
+  const defaults = {
+    startDate: '01/01/2012',
+    endDate: new Date().toISOString().slice(0, 10),
     pageSize: 100,
-    includeFormer: true,
     resume: true,
-    resetCheckpoint: false,
   };
 
+  const mmddyyyy = (isoDate) => {
+    const [yyyy, mm, dd] = isoDate.split('-');
+    return `${mm}/${dd}/${yyyy}`;
+  };
+  defaults.endDate = mmddyyyy(defaults.endDate);
+
   for (const arg of argv) {
-    if (arg.startsWith('--start-date=')) out.startDate = arg.split('=')[1];
-    if (arg.startsWith('--end-date=')) out.endDate = arg.split('=')[1];
-    if (arg.startsWith('--page-size=')) out.pageSize = Number(arg.split('=')[1]) || out.pageSize;
-    if (arg === '--active-only') out.includeFormer = false;
-    if (arg === '--no-resume') out.resume = false;
-    if (arg === '--reset-checkpoint') out.resetCheckpoint = true;
+    if (arg.startsWith('--start-date=')) {
+      defaults.startDate = arg.split('=')[1];
+    } else if (arg.startsWith('--end-date=')) {
+      defaults.endDate = arg.split('=')[1];
+    } else if (arg.startsWith('--page-size=')) {
+      const n = Number(arg.split('=')[1]);
+      if (Number.isFinite(n) && n > 0) defaults.pageSize = n;
+    } else if (arg === '--no-resume') {
+      defaults.resume = false;
+    }
   }
 
-  if (!out.endDate) {
-    const now = new Date();
-    const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
-    const dd = String(now.getUTCDate()).padStart(2, '0');
-    const yyyy = now.getUTCFullYear();
-    out.endDate = `${mm}/${dd}/${yyyy}`;
-  }
+  return defaults;
+}
 
-  return out;
+function toIsoDate(mmddyyyy) {
+  const m = String(mmddyyyy ?? '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  const mm = Number(m[1]);
+  const dd = Number(m[2]);
+  const yyyy = Number(m[3]);
+  const d = new Date(Date.UTC(yyyy, mm - 1, dd));
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+function summarizeDisclosure(trades, fallbackDate) {
+  const sorted = [...trades].sort((a, b) => String(a.tradeDate).localeCompare(String(b.tradeDate)));
+  const first = sorted[0];
+  const typeSet = new Set(sorted.map((t) => t.tradeType));
+
+  const total = sorted.reduce((sum, t) => sum + (t.amount ?? 0), 0);
+  const avg = sorted.length > 0 ? total / sorted.length : 0;
+  const rounded = Math.round(avg);
+
+  return {
+    ticker: first?.ticker ?? null,
+    transactionType: typeSet.size === 1 ? first.tradeType : 'MIXED',
+    tradeDate: first?.tradeDate ?? fallbackDate,
+    amountRange: `$${rounded.toLocaleString()} - $${rounded.toLocaleString()}`,
+  };
+}
+
+async function appendSkipped(reason, report) {
+  await fs.mkdir(path.dirname(SKIPPED_LOG_PATH), { recursive: true });
+  await fs.appendFile(
+    SKIPPED_LOG_PATH,
+    `${JSON.stringify({ reason, report, at: new Date().toISOString() })}\n`,
+    'utf8'
+  );
 }
 
 function checkpointSignature(args) {
   return JSON.stringify({
     startDate: args.startDate,
     endDate: args.endDate,
-    includeFormer: args.includeFormer,
     reportTypes: [11],
+    filerTypes: [4],
   });
 }
 
-async function readCheckpoint() {
+async function readCheckpoint(expectedSignature) {
   try {
     const raw = await fs.readFile(CHECKPOINT_PATH, 'utf8');
-    return JSON.parse(raw);
+    const checkpoint = JSON.parse(raw);
+    if (checkpoint.signature !== expectedSignature) return null;
+    return checkpoint;
   } catch {
     return null;
   }
 }
 
-async function writeCheckpoint(data) {
+async function writeCheckpoint(payload) {
   await fs.mkdir(path.dirname(CHECKPOINT_PATH), { recursive: true });
-  await fs.writeFile(CHECKPOINT_PATH, JSON.stringify(data, null, 2), 'utf8');
-}
-
-async function clearCheckpoint() {
-  try {
-    await fs.unlink(CHECKPOINT_PATH);
-  } catch {
-    // ignore missing checkpoint file
-  }
-}
-
-function normalizeName(value) {
-  return normalizeWhitespace(value)
-    .toLowerCase()
-    .replace(/[.,']/g, '')
-    .replace(/\b(hon|mr|mrs|ms|dr|jr|sr|ii|iii|iv)\b/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function getPostgresUrl() {
-  const direct =
-    process.env.TRADING_STORAGE_POSTGRES_URL ||
-    process.env.TRADING_STORAGE_PRISMA_DATABASE_URL ||
-    process.env.POSTGRES_URL;
-
-  const dbUrl = process.env.DATABASE_URL;
-
-  const base = direct && direct.startsWith('postgres') ? direct : dbUrl;
-  if (base && base.startsWith('postgres')) {
-    const url = new URL(base);
-    // Keep idle TLS connections healthier during long sync jobs.
-    if (!url.searchParams.has('keepalives')) url.searchParams.set('keepalives', '1');
-    if (!url.searchParams.has('keepalives_idle')) url.searchParams.set('keepalives_idle', '30');
-    if (!url.searchParams.has('keepalives_interval')) url.searchParams.set('keepalives_interval', '10');
-    if (!url.searchParams.has('keepalives_count')) url.searchParams.set('keepalives_count', '5');
-    if (!url.searchParams.has('connect_timeout')) url.searchParams.set('connect_timeout', '10');
-    return url.toString();
-  }
-
-  throw new Error('Missing direct Postgres URL. Set TRADING_STORAGE_POSTGRES_URL (or POSTGRES_URL).');
-}
-
-function resolveBioguide(firstName, lastName, members) {
-  const full = normalizeName(`${firstName} ${lastName}`);
-  const exact = members.find((m) => m.normalized === full);
-  if (exact) return exact.bioguide;
-
-  const first = normalizeName(firstName).split(' ')[0] ?? '';
-  const last = normalizeName(lastName);
-  if (!first || !last) return null;
-
-  const candidates = members.filter((m) => {
-    const tokens = m.normalized.split(' ');
-    return tokens.includes(last) || m.normalized.endsWith(` ${last}`);
-  });
-
-  const tokenMatch = candidates.find((m) => m.normalized.split(' ').includes(first));
-  if (tokenMatch) return tokenMatch.bioguide;
-
-  if (candidates.length === 1) return candidates[0].bioguide;
-  return null;
-}
-
-function parseAmountRange(amountText) {
-  const values = String(amountText ?? '')
-    .replace(/[$,]/g, '')
-    .split(' - ')
-    .map((v) => Number(v.trim()))
-    .filter((v) => Number.isFinite(v));
-
-  if (values.length === 0) return null;
-  if (values.length === 1) return values[0];
-  return (values[0] + values[1]) / 2;
-}
-
-function mapTradeType(typeText) {
-  const t = normalizeWhitespace(typeText).toLowerCase();
-  if (t.startsWith('purchase')) return 'PURCHASE';
-  if (t.startsWith('sale')) return 'SALE';
-  if (t.startsWith('exchange')) return 'EXCHANGE';
-  return t.toUpperCase() || 'UNKNOWN';
-}
-
-function extractTableRows(tableHtml) {
-  const rows = [];
-  const trRegex = /<tr>([\s\S]*?)<\/tr>/gi;
-  let trMatch = trRegex.exec(tableHtml);
-  while (trMatch) {
-    const rowHtml = trMatch[1];
-    const cells = [];
-    const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-    let tdMatch = tdRegex.exec(rowHtml);
-    while (tdMatch) {
-      cells.push(stripTags(tdMatch[1]));
-      tdMatch = tdRegex.exec(rowHtml);
-    }
-    if (cells.length > 0) rows.push(cells);
-    trMatch = trRegex.exec(tableHtml);
-  }
-  return rows;
-}
-
-function parsePtrTransactions(html) {
-  const tableMatch = String(html).match(/<table[^>]*class="[^"]*table-striped[^"]*"[^>]*>[\s\S]*?<\/table>/i);
-  if (!tableMatch) return [];
-
-  const rows = extractTableRows(tableMatch[0]);
-  const transactions = [];
-
-  for (const cells of rows) {
-    // Expected columns: #, date, owner, ticker, asset, asset type, type, amount, comment
-    if (cells.length < 8) continue;
-
-    const dateIso = mmddyyyyToIso(cells[1]);
-    const ticker = normalizeWhitespace(cells[3]) || null;
-    const amount = parseAmountRange(cells[7]);
-    const tradeType = mapTradeType(cells[6]);
-
-    if (!dateIso || !amount || amount <= 0) continue;
-    if (!ticker || ticker === '--') continue;
-
-    transactions.push({
-      tradeDate: dateIso,
-      ticker,
-      amount,
-      tradeType,
-    });
-  }
-
-  return transactions;
-}
-
-function isRetryableDbError(error) {
-  const msg = String(error?.message ?? '').toLowerCase();
-  const code = String(error?.code ?? error?.cause?.code ?? '').toUpperCase();
-
-  if (code === 'ECONNRESET' || code === 'ETIMEDOUT') return true;
-  if (msg.includes('connection terminated unexpectedly')) return true;
-  if (msg.includes('server closed the connection unexpectedly')) return true;
-  if (msg.includes('econnreset') || msg.includes('fetch failed')) return true;
-  return false;
-}
-
-async function logSkip(reason, report) {
-  await fs.mkdir(path.dirname(SKIP_LOG_PATH), { recursive: true });
-  await fs.appendFile(
-    SKIP_LOG_PATH,
-    `${JSON.stringify({ reason, report, at: new Date().toISOString() })}\n`,
-    'utf8'
-  );
+  await fs.writeFile(CHECKPOINT_PATH, JSON.stringify(payload, null, 2), 'utf8');
 }
 
 async function run() {
   const args = parseArgs(process.argv.slice(2));
-  const pgClient = new PgClient({ connectionString: getPostgresUrl() });
-  const adapter = new PrismaPg(pgClient);
-  const prisma = new PrismaClient({ adapter });
-  const senateClient = new SenateEfdClient();
+  const signature = checkpointSignature(args);
 
-  await prisma.$connect();
-
-  let discovered = 0;
-  let insertedReports = 0;
-  let insertedTrades = 0;
-  let skippedPaper = 0;
-  let skippedNoMatch = 0;
-  let skippedNoTrades = 0;
-  let skippedFetchErrors = 0;
-  let skippedDbErrors = 0;
+  const prisma = await createPrismaClient();
 
   try {
-    if (args.resetCheckpoint) {
-      await clearCheckpoint();
+    console.log(`Starting Senate PTR sync (${args.startDate} -> ${args.endDate})...`);
+
+    const session = await createSenateSession();
+
+    const rows = await fetchAllReportRows(session, {
+      startDate: args.startDate,
+      endDate: args.endDate,
+      pageSize: args.pageSize,
+      filerTypes: [4],
+      reportTypes: [11],
+    });
+
+    const parsedReports = rows
+      .map((r) => parseReportRow(r))
+      .filter((r) => r.reportId && r.reportPath && r.reportTitle)
+      .filter((r) => isLikelyPtrTitle(r.reportTitle))
+      .filter((r) => r.officeText && /senator/i.test(r.officeText));
+
+    const dedupedReports = [];
+    const seen = new Set();
+    for (const report of parsedReports) {
+      if (seen.has(report.reportId)) continue;
+      seen.add(report.reportId);
+      dedupedReports.push(report);
     }
 
-    const withDbRetry = async (label, fn, maxAttempts = 8) => {
-      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        try {
-          return await fn();
-        } catch (error) {
-          if (!isRetryableDbError(error) || attempt >= maxAttempts) {
-            throw error;
-          }
+    const checkpoint = args.resume ? await readCheckpoint(signature) : null;
+    const startIndex = checkpoint?.nextStart ?? 0;
 
-          const waitMs = 500 * attempt;
-          console.warn(`DB retry for ${label} (attempt ${attempt}/${maxAttempts}) after ${waitMs}ms: ${error.message}`);
-          try {
-            await prisma.$disconnect();
-          } catch {
-            // ignore reconnect cleanup failures
-          }
-          await sleep(waitMs);
-          await prisma.$connect();
-        }
-      }
-
-      throw new Error(`DB retry exhausted for ${label}`);
-    };
-
-    await senateClient.authenticate();
-
-    const senateMembers = await withDbRetry('load senate members', () => prisma.members.findMany({
-      where: { chamber: 'senate' },
+    const members = await prisma.members.findMany({
       select: { bioguide: true, full_name: true },
-    }));
+    });
+    const memberIndex = buildMemberIndex(members);
 
-    const normalizedMembers = senateMembers.map((m) => ({
-      bioguide: m.bioguide,
-      normalized: normalizeName(m.full_name),
-    }));
+    let insertedReports = checkpoint?.insertedReports ?? 0;
+    let insertedTrades = checkpoint?.insertedTrades ?? 0;
+    let skippedPaper = checkpoint?.skippedPaper ?? 0;
+    let skippedNoMatch = checkpoint?.skippedNoMatch ?? 0;
+    let skippedNoTrades = checkpoint?.skippedNoTrades ?? 0;
+    let skippedFetchErrors = checkpoint?.skippedFetchErrors ?? 0;
+    let skippedDbErrors = checkpoint?.skippedDbErrors ?? 0;
 
-    let start = 0;
-    let draw = 1;
-    let total = null;
-    const filerTypes = args.includeFormer ? [1, 5] : [1];
-    const signature = checkpointSignature(args);
+    for (let i = startIndex; i < dedupedReports.length; i += 1) {
+      const report = dedupedReports[i];
 
-    if (args.resume) {
-      const checkpoint = await readCheckpoint();
-      if (
-        checkpoint &&
-        checkpoint.signature === signature &&
-        checkpoint.status === 'in-progress' &&
-        Number.isInteger(checkpoint.nextStart) &&
-        Number.isInteger(checkpoint.nextDraw)
-      ) {
-        start = checkpoint.nextStart;
-        draw = checkpoint.nextDraw;
-        discovered = Number(checkpoint.discovered ?? 0);
-        insertedReports = Number(checkpoint.insertedReports ?? 0);
-        insertedTrades = Number(checkpoint.insertedTrades ?? 0);
-        skippedPaper = Number(checkpoint.skippedPaper ?? 0);
-        skippedNoMatch = Number(checkpoint.skippedNoMatch ?? 0);
-        skippedNoTrades = Number(checkpoint.skippedNoTrades ?? 0);
-        skippedFetchErrors = Number(checkpoint.skippedFetchErrors ?? 0);
-        skippedDbErrors = Number(checkpoint.skippedDbErrors ?? 0);
-
-        console.log(`Resuming PTR sync from offset ${start} (draw ${draw}).`);
+      if (report.reportKind === 'paper') {
+        skippedPaper += 1;
+        await appendSkipped('paper_report_not_supported_yet', report);
+        continue;
       }
-    }
 
-    while (total == null || start < total) {
-      const data = await senateClient.fetchReportPage({
-        draw,
-        start,
-        length: args.pageSize,
-        filerTypes,
-        reportTypes: [11], // Periodic Transaction Reports
-        submittedStart: args.startDate,
-        submittedEnd: args.endDate,
+      const exists = await prisma.disclosures.findFirst({
+        where: { doc_id: report.reportId },
+        select: { id: true },
       });
+      if (exists) continue;
 
-      const rows = Array.isArray(data.data) ? data.data : [];
-      discovered += rows.length;
-      total = Number(data.recordsFiltered ?? data.recordsTotal ?? rows.length);
-
-      const pageDocIds = rows
-        .map((row) => parseReportRow(row))
-        .filter((report) => Boolean(report.reportId))
-        .map((report) => `SENATE-${report.reportId}`);
-
-      const uniqueDocIds = [...new Set(pageDocIds)];
-      let existingDocIds = new Set();
-      if (uniqueDocIds.length > 0) {
-        try {
-          const existing = await withDbRetry('load existing disclosure doc ids', () =>
-            prisma.disclosures.findMany({
-              where: { doc_id: { in: uniqueDocIds } },
-              select: { doc_id: true },
-            })
-          );
-          existingDocIds = new Set(existing.map((r) => r.doc_id).filter(Boolean));
-        } catch (error) {
-          // Continue with per-row safety checks if page-level lookup fails.
-          await logSkip('page_existing_lookup_failed', {
-            draw,
-            start,
-            error: String(error?.message ?? error),
-          });
-        }
+      const bioguide = resolveBioguideForName(report.firstName, report.lastName, memberIndex);
+      if (!bioguide) {
+        skippedNoMatch += 1;
+        await appendSkipped('member_not_resolved', report);
+        continue;
       }
 
-      for (const row of rows) {
-        const report = parseReportRow(row);
-        if (!report.reportId || !report.reportPath) continue;
+      let reportHtml;
+      try {
+        const reportUrl = `${SENATE_BASE_URL}${report.reportPath}`;
+        const res = await fetch(reportUrl, {
+          headers: {
+            cookie: Object.entries(session.cookieJar).map(([k, v]) => `${k}=${v}`).join('; '),
+            referer: `${SENATE_BASE_URL}/search/`,
+          },
+        });
 
-        const bioguide = resolveBioguide(report.firstName, report.lastName, normalizedMembers);
-        if (!bioguide) {
-          skippedNoMatch += 1;
-          await logSkip('member_not_resolved', report);
-          continue;
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
         }
 
-        if (report.reportKind !== 'ptr') {
-          skippedPaper += 1;
-          await logSkip('paper_report_not_supported_yet', report);
-          continue;
-        }
+        reportHtml = await res.text();
+      } catch (error) {
+        skippedFetchErrors += 1;
+        await appendSkipped(`report_fetch_failed:${error.message}`, report);
+        continue;
+      }
 
-        const docId = `SENATE-${report.reportId}`;
-        if (existingDocIds.has(docId)) {
-          continue;
-        }
+      const parsedTrades = extractTransactionsFromReportHtml(reportHtml);
+      if (!parsedTrades.length) {
+        skippedNoTrades += 1;
+        await appendSkipped('no_parseable_transactions', report);
+        continue;
+      }
 
-        let reportHtml;
-        try {
-          reportHtml = await senateClient.fetchReportHtml(report.reportPath);
-        } catch (error) {
-          skippedFetchErrors += 1;
-          await logSkip('report_fetch_failed', {
-            ...report,
-            error: String(error?.message ?? error),
-            errorCode: error?.code ?? error?.cause?.code ?? null,
+      const summary = summarizeDisclosure(parsedTrades, report.filedDateIso ?? toIsoDate(report.filedDateText));
+
+      try {
+        await prisma.$transaction(async (tx) => {
+          const disclosure = await tx.disclosures.create({
+            data: {
+              doc_id: report.reportId,
+              bioguide,
+              ticker: summary.ticker,
+              transaction_type: summary.transactionType,
+              trade_date: summary.tradeDate,
+              amount_range: summary.amountRange,
+              sector: normalizeWhitespace(`${report.officeText ?? 'Senate'} PTR`) || 'Senate PTR',
+            },
+            select: { id: true },
           });
-          continue;
-        }
 
-        const transactions = parsePtrTransactions(reportHtml);
-
-        if (transactions.length === 0) {
-          skippedNoTrades += 1;
-          await logSkip('no_parseable_transactions', report);
-          continue;
-        }
-
-        const firstTx = transactions[0];
-        try {
-          const disclosure = await withDbRetry('create senate disclosure', () =>
-            prisma.disclosures.create({
-              data: {
-                doc_id: docId,
-                bioguide,
-                ticker: firstTx.ticker,
-                transaction_type: firstTx.tradeType,
-                trade_date: firstTx.tradeDate,
-                amount_range: null,
-                sector: 'senate_ptr',
-              },
-              select: { id: true },
-            })
-          );
-
-          if (transactions.length > 0) {
-            await withDbRetry('create senate trades', () =>
-              prisma.trades.createMany({
-                data: transactions.map((tx) => ({
-                  disclosure_id: disclosure.id,
-                  ticker: tx.ticker,
-                  trade_date: tx.tradeDate,
-                  trade_type: tx.tradeType,
-                  amount: tx.amount,
-                })),
-              })
-            );
+          if (parsedTrades.length > 0) {
+            await tx.trades.createMany({
+              data: parsedTrades.map((trade) => ({
+                disclosure_id: disclosure.id,
+                ticker: trade.ticker,
+                trade_date: trade.tradeDate,
+                trade_type: trade.tradeType,
+                amount: trade.amount,
+              })),
+              skipDuplicates: true,
+            });
           }
-        } catch (error) {
-          skippedDbErrors += 1;
-          await logSkip('db_write_failed', {
-            ...report,
-            error: String(error?.message ?? error),
-            errorCode: error?.code ?? error?.cause?.code ?? null,
-          });
-          continue;
-        }
+        });
 
         insertedReports += 1;
-        insertedTrades += transactions.length;
-        existingDocIds.add(docId);
+        insertedTrades += parsedTrades.length;
+      } catch (error) {
+        skippedDbErrors += 1;
+        await appendSkipped(`db_write_failed:${error.message}`, report);
       }
 
-      start += rows.length;
-      draw += 1;
-
-      await writeCheckpoint({
-        status: 'in-progress',
-        updatedAt: new Date().toISOString(),
-        signature,
-        args: {
-          startDate: args.startDate,
-          endDate: args.endDate,
-          includeFormer: args.includeFormer,
-        },
-        nextStart: start,
-        nextDraw: draw,
-        total,
-        discovered,
-        insertedReports,
-        insertedTrades,
-        skippedPaper,
-        skippedNoMatch,
-        skippedNoTrades,
-        skippedFetchErrors,
-        skippedDbErrors,
-      });
-
-      if (rows.length === 0) break;
-
-      console.log(`PTR page processed: ${Math.min(start, total)} / ${total}`);
+      if ((i + 1) % 25 === 0) {
+        await writeCheckpoint({
+          status: 'in-progress',
+          updatedAt: new Date().toISOString(),
+          signature,
+          args,
+          nextStart: i + 1,
+          total: dedupedReports.length,
+          discovered: i + 1,
+          insertedReports,
+          insertedTrades,
+          skippedPaper,
+          skippedNoMatch,
+          skippedNoTrades,
+          skippedFetchErrors,
+          skippedDbErrors,
+        });
+      }
     }
 
-    await clearCheckpoint();
+    await writeCheckpoint({
+      status: 'done',
+      updatedAt: new Date().toISOString(),
+      signature,
+      args,
+      nextStart: dedupedReports.length,
+      total: dedupedReports.length,
+      discovered: dedupedReports.length,
+      insertedReports,
+      insertedTrades,
+      skippedPaper,
+      skippedNoMatch,
+      skippedNoTrades,
+      skippedFetchErrors,
+      skippedDbErrors,
+    });
 
     console.log(
-      `Senate PTR sync complete. discovered=${discovered}, reports=${insertedReports}, trades=${insertedTrades}, skipped_paper=${skippedPaper}, skipped_no_match=${skippedNoMatch}, skipped_no_trades=${skippedNoTrades}, skipped_fetch_errors=${skippedFetchErrors}, skipped_db_errors=${skippedDbErrors}`
+      `Senate PTR sync finished. discovered=${dedupedReports.length}, insertedReports=${insertedReports}, insertedTrades=${insertedTrades}, skippedPaper=${skippedPaper}, skippedNoMatch=${skippedNoMatch}, skippedNoTrades=${skippedNoTrades}, skippedFetchErrors=${skippedFetchErrors}, skippedDbErrors=${skippedDbErrors}`
     );
   } finally {
     await prisma.$disconnect();

@@ -2,226 +2,123 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 require('dotenv/config');
 
-const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-const { Client: PgClient } = require('pg');
 const {
-  SenateEfdClient,
-  normalizeWhitespace,
+  SENATE_BASE_URL,
+  isLikelyAnnualTitle,
   parseReportRow,
-} = require('./senate-efd-client');
-
-const DEFAULT_START_DATE = '01/01/2012';
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function isRetryableDbError(error) {
-  const msg = String(error?.message ?? '').toLowerCase();
-  const code = String(error?.code ?? error?.cause?.code ?? '').toUpperCase();
-
-  if (code === 'ECONNRESET' || code === 'ETIMEDOUT') return true;
-  if (msg.includes('connection terminated unexpectedly')) return true;
-  if (msg.includes('server closed the connection unexpectedly')) return true;
-  return false;
-}
+  createSenateSession,
+  fetchAllReportRows,
+  buildMemberIndex,
+  resolveBioguideForName,
+  createPrismaClient,
+} = require('./senate-efd-common');
 
 function parseArgs(argv) {
-  const out = {
-    startDate: DEFAULT_START_DATE,
-    endDate: null,
+  const args = {
+    startDate: '01/01/2012',
+    endDate: new Date().toISOString().slice(0, 10),
     pageSize: 100,
   };
 
+  const mmddyyyy = (isoDate) => {
+    const [yyyy, mm, dd] = isoDate.split('-');
+    return `${mm}/${dd}/${yyyy}`;
+  };
+
+  args.endDate = mmddyyyy(args.endDate);
+
   for (const arg of argv) {
-    if (arg.startsWith('--start-date=')) out.startDate = arg.split('=')[1];
-    if (arg.startsWith('--end-date=')) out.endDate = arg.split('=')[1];
-    if (arg.startsWith('--page-size=')) out.pageSize = Number(arg.split('=')[1]) || out.pageSize;
+    if (arg.startsWith('--start-date=')) {
+      args.startDate = arg.split('=')[1];
+    } else if (arg.startsWith('--end-date=')) {
+      args.endDate = arg.split('=')[1];
+    } else if (arg.startsWith('--page-size=')) {
+      const n = Number(arg.split('=')[1]);
+      if (Number.isFinite(n) && n > 0) args.pageSize = n;
+    }
   }
 
-  if (!out.endDate) {
-    const now = new Date();
-    const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
-    const dd = String(now.getUTCDate()).padStart(2, '0');
-    const yyyy = now.getUTCFullYear();
-    out.endDate = `${mm}/${dd}/${yyyy}`;
-  }
-
-  return out;
-}
-
-function normalizeName(value) {
-  return normalizeWhitespace(value)
-    .toLowerCase()
-    .replace(/[.,']/g, '')
-    .replace(/\b(hon|mr|mrs|ms|dr|jr|sr|ii|iii|iv)\b/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function getPostgresUrl() {
-  const direct =
-    process.env.TRADING_STORAGE_POSTGRES_URL ||
-    process.env.TRADING_STORAGE_PRISMA_DATABASE_URL ||
-    process.env.POSTGRES_URL;
-
-  const dbUrl = process.env.DATABASE_URL;
-  const base = direct && direct.startsWith('postgres') ? direct : dbUrl;
-  if (base && base.startsWith('postgres')) {
-    const url = new URL(base);
-    if (!url.searchParams.has('keepalives')) url.searchParams.set('keepalives', '1');
-    if (!url.searchParams.has('keepalives_idle')) url.searchParams.set('keepalives_idle', '30');
-    if (!url.searchParams.has('keepalives_interval')) url.searchParams.set('keepalives_interval', '10');
-    if (!url.searchParams.has('keepalives_count')) url.searchParams.set('keepalives_count', '5');
-    if (!url.searchParams.has('connect_timeout')) url.searchParams.set('connect_timeout', '10');
-    return url.toString();
-  }
-
-  throw new Error('Missing direct Postgres URL. Set TRADING_STORAGE_POSTGRES_URL (or POSTGRES_URL).');
-}
-
-function resolveBioguide(firstName, lastName, members) {
-  const full = normalizeName(`${firstName} ${lastName}`);
-  const exact = members.find((m) => m.normalized === full);
-  if (exact) return exact.bioguide;
-
-  const first = normalizeName(firstName).split(' ')[0] ?? '';
-  const last = normalizeName(lastName);
-  if (!first || !last) return null;
-
-  const candidates = members.filter((m) => {
-    const tokens = m.normalized.split(' ');
-    return tokens.includes(last) || m.normalized.endsWith(` ${last}`);
-  });
-
-  const tokenMatch = candidates.find((m) => m.normalized.split(' ').includes(first));
-  if (tokenMatch) return tokenMatch.bioguide;
-
-  if (candidates.length === 1) return candidates[0].bioguide;
-  return null;
+  return args;
 }
 
 async function run() {
   const args = parseArgs(process.argv.slice(2));
-  const pgClient = new PgClient({ connectionString: getPostgresUrl() });
-  const adapter = new PrismaPg(pgClient);
-  const prisma = new PrismaClient({ adapter });
-  const senateClient = new SenateEfdClient();
-
-  await prisma.$connect();
-
-  let discovered = 0;
-  let upserted = 0;
+  const prisma = await createPrismaClient();
 
   try {
-    const withDbRetry = async (label, fn, maxAttempts = 8) => {
-      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        try {
-          return await fn();
-        } catch (error) {
-          if (!isRetryableDbError(error) || attempt >= maxAttempts) {
-            throw error;
-          }
+    console.log(`Starting Senate annual sync (${args.startDate} -> ${args.endDate})...`);
 
-          const waitMs = 500 * attempt;
-          console.warn(`DB retry for ${label} (attempt ${attempt}/${maxAttempts}) after ${waitMs}ms: ${error.message}`);
-          try {
-            await prisma.$disconnect();
-          } catch {
-            // ignore reconnect cleanup failures
-          }
-          await sleep(waitMs);
-          await prisma.$connect();
-        }
-      }
+    const session = await createSenateSession();
+    const rows = await fetchAllReportRows(session, {
+      startDate: args.startDate,
+      endDate: args.endDate,
+      pageSize: args.pageSize,
+      filerTypes: [4],
+      reportTypes: [],
+    });
 
-      throw new Error(`DB retry exhausted for ${label}`);
-    };
+    const parsedReports = rows
+      .map((r) => parseReportRow(r))
+      .filter((r) => r.reportId && r.reportPath && r.reportTitle)
+      .filter((r) => r.officeText && /senator/i.test(r.officeText));
 
-    await senateClient.authenticate();
+    const annualReports = parsedReports.filter((r) => isLikelyAnnualTitle(r.reportTitle));
 
-    const senateMembers = await withDbRetry('load senate members', () => prisma.members.findMany({
-      where: { chamber: 'senate' },
+    const members = await prisma.members.findMany({
       select: { bioguide: true, full_name: true },
-    }));
-    const normalizedMembers = senateMembers.map((m) => ({
-      bioguide: m.bioguide,
-      normalized: normalizeName(m.full_name),
-    }));
+    });
+    const memberIndex = buildMemberIndex(members);
 
-    let start = 0;
-    let draw = 1;
-    let total = null;
+    let discovered = 0;
+    let upserted = 0;
+    let unresolved = 0;
 
-    while (total == null || start < total) {
-      const data = await senateClient.fetchReportPage({
-        draw,
-        start,
-        length: args.pageSize,
-        filerTypes: [1, 5], // Senator, Former Senator
-        reportTypes: [7], // Annual
-        submittedStart: args.startDate,
-        submittedEnd: args.endDate,
+    const seen = new Set();
+
+    for (const report of annualReports) {
+      const reportId = report.reportId;
+      if (!reportId || seen.has(reportId)) continue;
+      seen.add(reportId);
+
+      discovered += 1;
+
+      const bioguide = resolveBioguideForName(report.firstName, report.lastName, memberIndex);
+      if (!bioguide) unresolved += 1;
+
+      const filingYear = report.filedDateIso ? Number(report.filedDateIso.slice(0, 4)) : new Date().getUTCFullYear();
+
+      const sourceUrl = `${SENATE_BASE_URL}${report.reportPath}`;
+      await prisma.annual_financial_disclosures.upsert({
+        where: { doc_id: reportId },
+        update: {
+          bioguide,
+          first_name: report.firstName,
+          last_name: report.lastName,
+          full_name: `${report.firstName ?? ''} ${report.lastName ?? ''}`.trim() || (report.officeText ?? report.reportTitle),
+          state_district: null,
+          filing_type: 'SENATE_ANNUAL',
+          filing_year: filingYear,
+          filing_date: report.filedDateIso,
+          source_url: sourceUrl,
+        },
+        create: {
+          doc_id: reportId,
+          bioguide,
+          first_name: report.firstName,
+          last_name: report.lastName,
+          full_name: `${report.firstName ?? ''} ${report.lastName ?? ''}`.trim() || (report.officeText ?? report.reportTitle),
+          state_district: null,
+          filing_type: 'SENATE_ANNUAL',
+          filing_year: filingYear,
+          filing_date: report.filedDateIso,
+          source_url: sourceUrl,
+        },
       });
 
-      const rows = Array.isArray(data.data) ? data.data : [];
-      discovered += rows.length;
-      total = Number(data.recordsFiltered ?? data.recordsTotal ?? rows.length);
-
-      for (const row of rows) {
-        const report = parseReportRow(row);
-        if (!report.reportId) continue;
-
-        const bioguide = resolveBioguide(report.firstName, report.lastName, normalizedMembers);
-        const filingYear = report.filedDateIso
-          ? Number(report.filedDateIso.slice(0, 4))
-          : new Date().getUTCFullYear();
-
-        const docId = `SENATE-${report.reportId}`;
-
-        await withDbRetry('upsert senate annual disclosure', () => prisma.annual_financial_disclosures.upsert({
-          where: { doc_id: docId },
-          update: {
-            bioguide,
-            first_name: report.firstName || null,
-            last_name: report.lastName || null,
-            full_name: normalizeWhitespace(`${report.firstName} ${report.lastName}`),
-            state_district: 'US-SENATE',
-            filing_type: 'SENATE_ANNUAL',
-            filing_year: filingYear,
-            filing_date: report.filedDateIso,
-            source_url: report.reportPath
-              ? `https://efdsearch.senate.gov${report.reportPath}`
-              : 'https://efdsearch.senate.gov/search/',
-          },
-          create: {
-            doc_id: docId,
-            bioguide,
-            first_name: report.firstName || null,
-            last_name: report.lastName || null,
-            full_name: normalizeWhitespace(`${report.firstName} ${report.lastName}`),
-            state_district: 'US-SENATE',
-            filing_type: 'SENATE_ANNUAL',
-            filing_year: filingYear,
-            filing_date: report.filedDateIso,
-            source_url: report.reportPath
-              ? `https://efdsearch.senate.gov${report.reportPath}`
-              : 'https://efdsearch.senate.gov/search/',
-          },
-        }));
-
-        upserted += 1;
-      }
-
-      start += rows.length;
-      draw += 1;
-      if (rows.length === 0) break;
-
-      console.log(`Annual page processed: ${Math.min(start, total)} / ${total}`);
+      upserted += 1;
     }
 
-    console.log(`Senate annual sync complete. discovered=${discovered}, upserted=${upserted}`);
+    console.log(`Senate annual sync complete. discovered=${discovered}, upserted=${upserted}, unresolved_members=${unresolved}`);
   } finally {
     await prisma.$disconnect();
   }

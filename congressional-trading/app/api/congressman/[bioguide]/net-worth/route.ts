@@ -148,28 +148,24 @@ function parsePdfText(text: string): { assets: AssetEntry[]; liabilities: Liabil
   };
 
   for (const line of lines) {
-    // Detect Schedule A column header
     if (line.includes('Value of Asset') && line.includes('Owner')) {
       sec = 'a';
       pendingAsset = null;
       pendingLow = null;
       continue;
     }
-    // Detect Schedule D column header
     if (line.includes('Creditor') && line.includes('Date Incurred')) {
       sec = 'd';
       pendingLiab = null;
       pendingLiabLow = null;
       continue;
     }
-    // Skip footnotes and page markers
     if (line.startsWith('https://') || line.startsWith('* Asset')) continue;
     if (/^--\s*\d+\s*of\s*\d+\s*--$/.test(line)) continue;
 
     if (sec === 'a') {
       const typeMatch = line.match(/\[([A-Z]{2,4})\]/);
       if (typeMatch) {
-        // Start of a new asset row
         pendingAsset = null;
         pendingLow = null;
 
@@ -188,14 +184,11 @@ function parsePdfText(text: string): { assets: AssetEntry[]; liabilities: Liabil
         }
       } else if (pendingAsset) {
         if (pendingLow !== null) {
-          // Expecting the $hi to complete the range
           const completed = parseRangeEnd(line, pendingLow);
           if (completed) {
             emitAsset(pendingAsset.name, pendingAsset.typeCode, pendingAsset.owner, completed);
           }
-          // If not a value line (income type, etc.), keep pendingAsset cleared on next [TYPE]
         } else {
-          // Might have owner or value on this continuation line
           const ownerMatch = line.match(/^(SP|JT|DC)\b/);
           if (ownerMatch) pendingAsset.owner = ownerMatch[1];
 
@@ -212,7 +205,6 @@ function parsePdfText(text: string): { assets: AssetEntry[]; liabilities: Liabil
 
     if (sec === 'd') {
       if (pendingLiabLow !== null && pendingLiab) {
-        // Expecting $hi to complete liability range
         const m = line.match(/^\$([\d,]+)/);
         if (m) {
           const high = Number(m[1].replace(/,/g, ''));
@@ -228,14 +220,12 @@ function parsePdfText(text: string): { assets: AssetEntry[]; liabilities: Liabil
         }
       }
 
-      // Parse new liability row: "OWNER \t Creditor \t DateType \t $lo - [$hi]"
       const ownerMatch = line.match(/^(JT|SP|DC|Self)\b/);
       if (ownerMatch) {
         const owner = ownerMatch[1];
         const parts = line.split('\t');
         const creditor = (parts[1] ?? '').trim() || 'Unknown';
         const typeStr = (parts[2] ?? '').trim();
-        // Loan type is after the date (e.g. "November 2021 Home Equity Loan" → "Home Equity Loan")
         const loanType = typeStr.replace(/^[A-Za-z]+\s+\d{4}\s+/, '').trim() || 'Other';
 
         const full = parseFullRange(line);
@@ -277,7 +267,6 @@ export async function GET(
       select: { doc_id: true, filing_year: true, filing_date: true },
     });
 
-    // Fallback when annual rows are not bioguide-linked: resolve by strict first+last name.
     if (!disclosure) {
       const { first, last } = extractFirstLast(member.full_name);
       if (first && last) {

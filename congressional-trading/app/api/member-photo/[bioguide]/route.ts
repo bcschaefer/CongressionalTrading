@@ -29,7 +29,6 @@ export async function GET(
 
   const firstLetter = normalized[0];
 
-  // Try different potential photo sources
   const urls = [
     `https://clerk.house.gov/content/assets/img/members/${normalized}.jpg`,
     `https://bioguide.congress.gov/bioguide/photo/${firstLetter}/${normalized}.jpg`,
