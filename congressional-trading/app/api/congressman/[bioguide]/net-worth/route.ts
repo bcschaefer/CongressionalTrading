@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { execFile } from 'node:child_process';
+import path from 'node:path';
+import { promisify } from 'node:util';
 
 export const runtime = 'nodejs';
+
+const execFileAsync = promisify(execFile);
 
 export type AssetEntry = {
   name: string;
@@ -93,24 +98,16 @@ function parseRangeEnd(str: string, low: number): { low: number; high: number; m
 }
 
 async function extractTextFromPdf(pdfUrl: string): Promise<string> {
-  const response = await fetch(pdfUrl);
-  if (!response.ok) {
-    throw new Error(`PDF unavailable: ${response.status}`);
+  const scriptPath = path.join(process.cwd(), 'scripts', 'extract-pdf-text.js');
+  const { stdout } = await execFileAsync(process.execPath, [scriptPath, pdfUrl], {
+    maxBuffer: 10 * 1024 * 1024,
+  });
+
+  const parsed = JSON.parse(stdout) as { text?: string; error?: string };
+  if (parsed.error) {
+    throw new Error(parsed.error);
   }
-
-  const buffer = Buffer.from(await response.arrayBuffer());
-  const pdfParseModule: any = await import('pdf-parse');
-  const PDFParse = pdfParseModule.PDFParse ?? pdfParseModule.default?.PDFParse;
-
-  if (!PDFParse) {
-    throw new Error('PDF parser unavailable');
-  }
-
-  const parser = new PDFParse({ data: buffer });
-  const result = await parser.getText();
-  await parser.destroy();
-
-  return result.text ?? '';
+  return parsed.text ?? '';
 }
 
 function parsePdfText(text: string): { assets: AssetEntry[]; liabilities: LiabilityEntry[] } {
