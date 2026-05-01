@@ -96,7 +96,7 @@ export default function NetWorthSection({
           marginTop: '12px',
           marginBottom: '14px',
           textAlign: 'center',
-          fontSize: '40px',
+          fontSize: 'clamp(1.75rem, 7.2vw, 2.5rem)',
           fontWeight: 800,
           lineHeight: 1.05,
           color: '#1e3a8a',
@@ -141,7 +141,7 @@ export default function NetWorthSection({
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '26px',
+                  gap: '14px',
                 }}
               >
                 View Disclosures ({disclosures.length})
@@ -159,7 +159,7 @@ export default function NetWorthSection({
                     borderRadius: '10px',
                     boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
                     zIndex: 50,
-                    minWidth: '280px',
+                    width: 'min(280px, calc(100vw - 48px))',
                     maxHeight: '260px',
                     overflowY: 'auto',
                     padding: '6px 0',
@@ -221,7 +221,7 @@ export default function NetWorthSection({
               display: 'flex',
               flexWrap: 'wrap',
               justifyContent: 'center',
-              gap: '32px',
+              gap: '22px',
               marginBottom: '28px',
             }}
           >
@@ -243,7 +243,7 @@ export default function NetWorthSection({
                 >
                   {label}
                 </div>
-                <div style={{ fontSize: '28px', fontWeight: 800, color: '#111827' }}>{value}</div>
+                <div style={{ fontSize: 'clamp(1.25rem, 5vw, 1.75rem)', fontWeight: 800, color: '#111827' }}>{value}</div>
               </div>
             ))}
           </div>
@@ -256,13 +256,13 @@ export default function NetWorthSection({
           {netWorth.assets.length > 0 && (
             <>
               <div
+                className="ml-1 sm:ml-4"
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
                   alignItems: 'baseline',
                   gap: '16px',
                   marginBottom: '12px',
-                  marginLeft: '16px',
                 }}
               >
                 <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', margin: 0 }}>
@@ -278,7 +278,7 @@ export default function NetWorthSection({
                   )}
                 </span>
               </div>
-              <div className="overflow-x-auto" style={{ paddingLeft: '16px', marginBottom: '6px' }}>
+              <div className="overflow-x-auto sm:pl-4" style={{ marginBottom: '6px' }}>
                 <div
                   style={{
                     maxHeight: '360px',
@@ -289,7 +289,7 @@ export default function NetWorthSection({
                 >
                   <table
                     style={{
-                      width: 'calc(100% - 16px)',
+                      width: '100%',
                       fontSize: '13px',
                       borderCollapse: 'collapse',
                     }}
@@ -436,7 +436,7 @@ export default function NetWorthSection({
                   </table>
                 </div>
               </div>
-              <div style={{ paddingLeft: '34px', paddingRight: '26px', marginTop: '8px', marginBottom: '12px' }}>
+              <div className="px-1 sm:pl-8 sm:pr-6" style={{ marginTop: '8px', marginBottom: '12px' }}>
                 <div
                   style={{
                     textAlign: 'right',
@@ -455,21 +455,21 @@ export default function NetWorthSection({
           {netWorth.liabilities.length > 0 && (
             <>
               <h3
+                className="ml-1 sm:ml-4"
                 style={{
                   fontSize: '18px',
                   fontWeight: 700,
                   color: '#111827',
                   marginBottom: '10px',
                   marginTop: '28px',
-                  marginLeft: '16px',
                 }}
               >
                 Liabilities
               </h3>
-              <div className="overflow-x-auto" style={{ paddingLeft: '16px' }}>
+              <div className="overflow-x-auto sm:pl-4">
                 <table
                   style={{
-                    width: 'calc(100% - 16px)',
+                    width: '100%',
                     fontSize: '13px',
                     borderCollapse: 'collapse',
                   }}

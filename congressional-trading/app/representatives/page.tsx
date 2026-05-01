@@ -109,7 +109,7 @@ export default function RepresentativesPage() {
           </Link>
           <div className="flex items-end justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight">Representatives</h1>
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Representatives</h1>
               <p className="mt-1 text-white/60 text-sm">
                 {loading ? '…' : isSearching
                   ? `Searching all ${members.length} members with trade disclosures`
@@ -119,7 +119,7 @@ export default function RepresentativesPage() {
           </div>
 
           {/* Search bar inside header */}
-          <div className="mt-6 relative">
+          <div className="mt-6">
             <input
               type="text"
               placeholder="Search all members since 2008…"
@@ -140,11 +140,7 @@ export default function RepresentativesPage() {
               className="placeholder:text-white/50 focus:bg-white/25"
             />
             {isSearching && (
-              <span
-                style={{ position: 'absolute', right: 'calc(100% - 464px)', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.6)', fontSize: '12px', pointerEvents: 'none' }}
-              >
-                showing all eras
-              </span>
+              <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>Showing all eras</p>
             )}
           </div>
         </div>
@@ -162,7 +158,7 @@ export default function RepresentativesPage() {
           <button style={filterBtn(chamberFilter === 'all', '#6b7280')} onClick={() => setChamberFilter('all')}>All Chambers</button>
           <button style={filterBtn(chamberFilter === 'house', '#0f766e')} onClick={() => setChamberFilter('house')}>House</button>
           <button style={filterBtn(chamberFilter === 'senate', '#7c3aed')} onClick={() => setChamberFilter('senate')}>Senate</button>
-          <span className="ml-auto text-xs text-gray-400">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
+          <span className="ml-0 text-xs text-gray-400 sm:ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
         </div>
 
         {loading ? (
@@ -182,7 +178,7 @@ export default function RepresentativesPage() {
                       key={m.bioguide}
                       onClick={() => router.push(`/congressman/${m.bioguide}`)}
                       className="w-full text-left hover:bg-blue-50 transition-colors cursor-pointer"
-                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 20px' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', flexWrap: 'wrap' }}
                     >
                       <span
                         style={{
@@ -193,10 +189,10 @@ export default function RepresentativesPage() {
                           flexShrink: 0,
                         }}
                       />
-                      <span style={{ flex: 1, fontWeight: 500, fontSize: '14px', color: '#111827' }}>
+                      <span style={{ flex: '1 1 100%', minWidth: '0', fontWeight: 600, fontSize: '14px', color: '#111827' }} className="sm:flex-1">
                         {m.full_name}
                       </span>
-                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0 }}>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', width: '100%' }} className="sm:w-auto">
                         {m.party && (
                           <span style={{ color, fontSize: '12px', fontWeight: 600 }}>
                             {partyLabel(m.party)}

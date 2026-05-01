@@ -83,7 +83,7 @@ export default function StocksPage() {
           </Link>
           <div className="flex items-end justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight">Stocks</h1>
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Stocks</h1>
               <p className="mt-1 text-white/60 text-sm">
                 {loading ? '…' : `${stocks.length} tickers traded by Congress`}
               </p>
@@ -125,7 +125,7 @@ export default function StocksPage() {
           <button style={filterBtn(sortKey === 'tradeCount', '#0f766e')} onClick={() => setSortKey('tradeCount')}>Trade Count</button>
           <button style={filterBtn(sortKey === 'buyAmount', '#15803d')} onClick={() => setSortKey('buyAmount')}>Buy Amount</button>
           <button style={filterBtn(sortKey === 'sellAmount', '#b91c1c')} onClick={() => setSortKey('sellAmount')}>Sell Amount</button>
-          <span className="ml-auto text-xs text-gray-400">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
+          <span className="ml-0 text-xs text-gray-400 sm:ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
         </div>
 
         {loading ? (
@@ -148,19 +148,19 @@ export default function StocksPage() {
                       className="w-full text-left hover:bg-teal-50 transition-colors cursor-pointer"
                       style={{ display: 'block', padding: '12px 20px' }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div className="flex w-full flex-wrap items-center gap-2 sm:gap-3">
                         {/* Rank */}
-                        <span style={{ width: '28px', textAlign: 'right', fontSize: '12px', color: '#9ca3af', flexShrink: 0 }}>
+                        <span style={{ width: '22px', textAlign: 'right', fontSize: '12px', color: '#9ca3af', flexShrink: 0 }}>
                           {i + 1}
                         </span>
 
                         {/* Ticker */}
-                        <span style={{ width: '80px', fontWeight: 700, fontSize: '15px', fontFamily: 'monospace', color: '#111827', flexShrink: 0 }}>
+                        <span style={{ width: '64px', fontWeight: 700, fontSize: '15px', fontFamily: 'monospace', color: '#111827', flexShrink: 0 }}>
                           {s.ticker}
                         </span>
 
                         {/* Bar */}
-                        <div style={{ flex: 1, position: 'relative', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{ flex: 1, minWidth: '100px', position: 'relative', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                           <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${buyPct}%`, background: '#10b981', borderRadius: '4px 0 0 4px' }} />
                           <div style={{ position: 'absolute', left: `${buyPct}%`, top: 0, height: '100%', width: `${sellPct}%`, background: '#ef4444' }} />
                           {/* grey remainder */}
@@ -168,17 +168,17 @@ export default function StocksPage() {
                         </div>
 
                         {/* Amounts */}
-                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexShrink: 0 }}>
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#111827', minWidth: '70px', textAlign: 'right' }}>
+                        <div className="ml-0 flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto sm:gap-3" style={{ flexShrink: 0 }}>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#111827', minWidth: '0', textAlign: 'left' }} className="sm:min-w-17.5 sm:text-right">
                             {formatMoney(s.totalAmount)}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#10b981', minWidth: '48px', textAlign: 'right' }}>
+                          <span style={{ fontSize: '11px', color: '#10b981', minWidth: '0', textAlign: 'left' }} className="sm:min-w-12 sm:text-right">
                             {s.buyCount > 0 ? `↑ ${formatMoney(s.buyAmount)}` : ''}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#ef4444', minWidth: '48px', textAlign: 'right' }}>
+                          <span style={{ fontSize: '11px', color: '#ef4444', minWidth: '0', textAlign: 'left' }} className="sm:min-w-12 sm:text-right">
                             {s.sellCount > 0 ? `↓ ${formatMoney(s.sellAmount)}` : ''}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#9ca3af', minWidth: '56px', textAlign: 'right' }}>
+                          <span style={{ fontSize: '11px', color: '#9ca3af', minWidth: '0', textAlign: 'left' }} className="sm:min-w-14 sm:text-right">
                             {s.tradeCount} trade{s.tradeCount !== 1 ? 's' : ''}
                           </span>
                         </div>

@@ -74,11 +74,8 @@ export default function Hero() {
   return (
     <div>
       <div className="px-4 py-8 md:px-8" style={{ background: 'linear-gradient(135deg, #f9fafb 0%, #eff6ff 100%)' }}>
-        <div
-          className="mx-auto max-w-400"
-          style={{ display: 'flex', gap: '2rem', alignItems: 'stretch' }}
-        >
-        <div style={{ width: '50%', minWidth: 0 }}>
+        <div className="mx-auto flex max-w-400 flex-col items-stretch gap-8 lg:flex-row">
+        <div className="hidden w-full min-w-0 md:block lg:w-1/2">
           <div className="mb-6">
             <HomeTradeChartCard
               title="Purchases"
@@ -103,8 +100,8 @@ export default function Hero() {
           </div>
         </div>
 
-        <div style={{ width: '50%', minWidth: 0 }}>
-          <h2 style={{ marginBottom: '1.5rem', textAlign: 'center', fontSize: '1.875rem', fontWeight: 900, letterSpacing: '0.025em', color: '#6b21a8' }}>Most Prolific Traders</h2>
+        <div className="w-full min-w-0 lg:w-1/2">
+          <h2 className="mb-6 text-center text-2xl font-black tracking-wide text-purple-800 sm:text-3xl">Most Prolific Traders</h2>
           <ProlificTradersTable
             groups={groupedCongressmen}
             selectedBioguide={selectedBioguide}

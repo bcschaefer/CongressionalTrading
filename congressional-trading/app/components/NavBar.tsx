@@ -412,15 +412,22 @@ export default function NavBar() {
         @media (max-width: 980px) {
           .site-nav-inner {
             flex-wrap: wrap;
+            padding: 14px 16px;
+            gap: 10px;
+            align-items: stretch;
           }
 
           .site-nav-links {
-            order: 1;
+            order: 2;
+            flex-wrap: wrap;
           }
 
           .site-nav-brand {
-            order: 2;
-            margin-left: auto;
+            order: 1;
+            margin-left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 28px;
           }
 
           .site-nav-search-wrap {
@@ -428,6 +435,71 @@ export default function NavBar() {
             flex-basis: 100%;
             max-width: none;
             min-width: 0;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .site-nav-inner {
+            padding: 12px;
+            gap: 8px;
+            align-items: stretch;
+          }
+
+          .site-nav-links {
+            width: 100%;
+            justify-content: flex-start;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            padding-bottom: 2px;
+            order: 2;
+          }
+
+          .site-nav-links::-webkit-scrollbar {
+            height: 0;
+          }
+
+          .site-nav-pill {
+            font-size: 12px;
+            padding: 7px 10px;
+            white-space: nowrap;
+          }
+
+          .site-nav-brand {
+            order: 1;
+            margin-left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 24px;
+          }
+
+          .site-nav-search-wrap {
+            order: 3;
+          }
+
+          .site-nav-search-form {
+            gap: 6px;
+          }
+
+          .site-nav-search-input {
+            min-width: 0;
+            font-size: 13px;
+            padding: 9px 12px;
+          }
+
+          .site-nav-search-btn {
+            padding: 8px 10px;
+            font-size: 12px;
+          }
+
+          .site-nav-search-dropdown {
+            max-height: 52vh;
+            overflow-y: auto;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .site-nav-search-btn {
+            display: none;
           }
         }
       `}</style>

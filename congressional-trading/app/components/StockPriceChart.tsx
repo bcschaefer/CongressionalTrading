@@ -187,8 +187,10 @@ export default function StockPriceChart({ trades }: StockPriceChartProps) {
   return (
     <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '16px', marginBottom: '24px' }}>
       <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '16px' }}>Price Movement</h2>
-      <svg ref={svgRef} className="block" style={{ margin: '0 auto' }} />
-      <div style={{ display: 'flex', gap: '24px', marginTop: '16px', justifyContent: 'center', fontSize: '12px' }}>
+      <div style={{ overflowX: 'auto' }}>
+        <svg ref={svgRef} className="block" style={{ margin: '0 auto', minWidth: '680px' }} />
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 24px', marginTop: '16px', justifyContent: 'center', fontSize: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }} />
           <span style={{ color: '#6b7280' }}>Purchases</span>

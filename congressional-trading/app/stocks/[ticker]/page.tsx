@@ -159,7 +159,7 @@ export default function StockDetailPage() {
   });
 
   const statCard = (label: string, value: string, sub?: string, color?: string) => (
-    <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '16px 20px', minWidth: '120px', flex: 1 }}>
+    <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '16px 20px', minWidth: '0', flex: '1 1 220px' }}>
       <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
       <div style={{ fontSize: '22px', fontWeight: 700, color: color ?? '#111827', marginTop: '4px' }}>{value}</div>
       {sub && <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>{sub}</div>}
@@ -193,7 +193,7 @@ export default function StockDetailPage() {
           <Link href="/stocks" className="inline-block text-sm text-white/70 hover:text-white mb-5 transition">
             ← Back to Stocks
           </Link>
-          <h1 style={{ fontSize: '3rem', fontWeight: 800, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: 'clamp(2rem, 7vw, 3rem)', fontWeight: 800, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
             {data.ticker}
           </h1>
           <p className="mt-1 text-white/60 text-sm">{data.tradeCount} congressional trades recorded</p>
@@ -205,14 +205,14 @@ export default function StockDetailPage() {
               <div style={{ width: `${sellPct}%`, background: '#ef4444' }} />
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '16px', marginTop: '6px', fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 16px', marginTop: '6px', fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
             <span style={{ color: '#6ee7b7' }}>↑ {buyPct.toFixed(0)}% buys</span>
             <span style={{ color: '#fca5a5' }}>↓ {sellPct.toFixed(0)}% sells</span>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-5xl px-6 py-6" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {/* Stat cards */}
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           {statCard('Total Traded', formatMoney(data.totalAmount), `${data.tradeCount} trades`)}
@@ -335,12 +335,11 @@ export default function StockDetailPage() {
                         key={m.bioguide}
                         onClick={() => router.push(`/congressman/${m.bioguide}`)}
                         className="w-full text-left hover:bg-teal-50 transition-colors cursor-pointer"
-                        style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 20px', position: 'relative' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', flexWrap: 'wrap' }}
                       >
                         <span style={{ width: '8px', height: '8px', borderRadius: '9999px', background: partyColor(m.party), flexShrink: 0 }} />
-                        <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontWeight: 500, fontSize: '14px', color: '#111827', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{m.full_name}</span>
-                        <div style={{ flex: 1 }} />
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexShrink: 0 }}>
+                          <span style={{ fontWeight: 500, fontSize: '14px', color: '#111827', flex: '1 1 100%', minWidth: '0' }} className="sm:flex-1">{m.full_name}</span>
+                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', width: '100%' }} className="sm:w-auto sm:ml-auto">
                           {m.buyAmount > 0 && (
                             <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600 }}>↑ {formatMoney(m.buyAmount)}</span>
                           )}
@@ -374,19 +373,21 @@ export default function StockDetailPage() {
             ) : (
               <>
                 {/* Table header */}
-                <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 90px 90px', gap: '0', padding: '8px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' }}>Date</span>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' }}>Member</span>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', textAlign: 'center' }}>Type</span>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', textAlign: 'right' }}>Amount</span>
-                </div>
-                <div className="divide-y divide-gray-100" style={{ maxHeight: '480px', overflowY: 'auto' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <div style={{ minWidth: '620px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 90px 90px', gap: '0', padding: '8px 14px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' }}>Date</span>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' }}>Member</span>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', textAlign: 'center' }}>Type</span>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', textAlign: 'right' }}>Amount</span>
+                    </div>
+                    <div className="divide-y divide-gray-100" style={{ maxHeight: '480px', overflowY: 'auto' }}>
                   {filteredTrades.map((t) => {
                     const dir = tradeDirection(t.trade_type);
                     return (
                       <div
                         key={t.id}
-                        style={{ display: 'grid', gridTemplateColumns: '100px 1fr 90px 90px', gap: '0', padding: '9px 20px', alignItems: 'center' }}
+                        style={{ display: 'grid', gridTemplateColumns: '100px 1fr 90px 90px', gap: '0', padding: '9px 14px', alignItems: 'center' }}
                       >
                         <span style={{ fontSize: '12px', color: '#6b7280', fontFamily: 'monospace' }}>{formatDate(t.trade_date)}</span>
                         <button
@@ -409,6 +410,8 @@ export default function StockDetailPage() {
                       </div>
                     );
                   })}
+                    </div>
+                  </div>
                 </div>
               </>
             )}

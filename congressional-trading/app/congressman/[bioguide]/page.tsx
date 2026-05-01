@@ -146,7 +146,7 @@ export default function CongressmanPage() {
     () => (
       <>
         <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 overflow-hidden">
-          <h2 style={{ marginTop: '12px', marginBottom: '14px', textAlign: 'center', fontSize: '48px', fontWeight: 800, lineHeight: 1.05, color: '#065f46' }}>
+          <h2 style={{ marginTop: '12px', marginBottom: '14px', textAlign: 'center', fontSize: 'clamp(1.9rem, 8vw, 3rem)', fontWeight: 800, lineHeight: 1.05, color: '#065f46' }}>
             Purchases
           </h2>
           <div className="w-full overflow-x-auto overflow-y-hidden">
@@ -160,7 +160,7 @@ export default function CongressmanPage() {
         </div>
 
         <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 overflow-hidden">
-          <h2 style={{ marginTop: '12px', marginBottom: '14px', textAlign: 'center', fontSize: '48px', fontWeight: 800, lineHeight: 1.05, color: '#9f1239' }}>
+          <h2 style={{ marginTop: '12px', marginBottom: '14px', textAlign: 'center', fontSize: 'clamp(1.9rem, 8vw, 3rem)', fontWeight: 800, lineHeight: 1.05, color: '#9f1239' }}>
             Sales
           </h2>
           <div className="w-full overflow-x-auto overflow-y-hidden">
@@ -204,7 +204,7 @@ export default function CongressmanPage() {
       {/* Header */}
       <div className="border-b border-white/10 text-white shadow-xl" style={bannerStyle}>
         <div
-          className="mx-auto max-w-7xl px-6 md:px-10"
+          className="mx-auto max-w-7xl px-4 md:px-10"
           style={{ paddingTop: '30px', paddingBottom: '38px' }}
         >
           <button onClick={() => router.back()} className="inline-block text-sm text-white/80 transition hover:text-white mb-6 cursor-pointer">
@@ -235,7 +235,7 @@ export default function CongressmanPage() {
 
             {/* Info */}
             <div className="min-w-0 py-2">
-              <h1 className="text-4xl font-bold tracking-tight md:text-5xl">{member.full_name}</h1>
+              <h1 className="text-3xl font-bold tracking-tight md:text-5xl">{member.full_name}</h1>
               {(() => {
                 const p = (member.party ?? '').trim().toUpperCase();
                 const pillBg = p === 'D' || p.startsWith('DEM')
@@ -310,7 +310,7 @@ export default function CongressmanPage() {
       </div>
 
       {/* Graphs */}
-      <div className="mx-auto max-w-7xl px-6 pb-12 pt-6 space-y-8 md:px-10 md:pb-14 md:pt-8" style={{ marginTop: '32px' }}>
+      <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 space-y-8 md:px-10 md:pb-14 md:pt-8" style={{ marginTop: '24px' }}>
         {tradeCharts}
 
         <NetWorthSection netWorth={netWorth} disclosures={disclosuresSorted} />
