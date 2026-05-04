@@ -2,6 +2,8 @@
 
 Congressional Trading is a Next.js app for exploring congressional financial disclosures, trades, stock activity, and member-level net worth estimates.
 
+View 'Congressional Trading Analysis' for report on my findings
+
 ## Stack
 
 - Next.js (App Router)
