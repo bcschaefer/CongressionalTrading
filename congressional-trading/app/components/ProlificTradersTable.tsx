@@ -3,6 +3,7 @@ import { formatDate, formatMoney, getTradeCountLabel } from '@/lib/home-trades';
 
 type ProlificTradersTableProps = {
   groups: CongressmanGroup[];
+  isLoading: boolean;
   selectedBioguide: string | null;
   onHoverRow: (bioguide: string) => void;
   onOpenMember: (bioguide: string) => void;
@@ -10,10 +11,30 @@ type ProlificTradersTableProps = {
 
 export default function ProlificTradersTable({
   groups,
+  isLoading,
   selectedBioguide,
   onHoverRow,
   onOpenMember,
 }: ProlificTradersTableProps) {
+  if (isLoading) {
+    return (
+      <div className="flex min-h-96 items-center justify-center rounded-xl border border-gray-200 bg-white shadow-xl">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
+          <p className="mt-4 text-sm font-semibold text-gray-600">Loading recent congressional trades...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (groups.length === 0) {
+    return (
+      <div className="flex min-h-96 items-center justify-center rounded-xl border border-gray-200 bg-white shadow-xl">
+        <p className="px-6 text-center text-sm font-semibold text-gray-500">No trade data found for the current dataset.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden" style={{ maxHeight: '928px', overflowY: 'auto' }}>
       <div className="divide-y divide-gray-200 md:hidden">

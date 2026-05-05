@@ -7,6 +7,7 @@ type HomeTradeChartCardProps = {
   titleBorderColor: string;
   titleBackgroundColor: string;
   chartColor: string;
+  isLoading: boolean;
   emptyMessage: string;
   trades: HomeTrade[];
 };
@@ -17,6 +18,7 @@ export default function HomeTradeChartCard({
   titleBorderColor,
   titleBackgroundColor,
   chartColor,
+  isLoading,
   emptyMessage,
   trades,
 }: HomeTradeChartCardProps) {
@@ -40,14 +42,20 @@ export default function HomeTradeChartCard({
         {title}
       </h3>
       <div className="bg-white p-4 rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-        <div style={{ width: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
-          <TradeBarChart
-            trades={trades}
-            color={chartColor}
-            emptyMessage={emptyMessage}
-            groupByTicker={true}
-          />
-        </div>
+        {isLoading ? (
+          <div className="flex min-h-80 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-sm font-semibold text-gray-500">
+            Loading chart data...
+          </div>
+        ) : (
+          <div style={{ width: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
+            <TradeBarChart
+              trades={trades}
+              color={chartColor}
+              emptyMessage={emptyMessage}
+              groupByTicker={true}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

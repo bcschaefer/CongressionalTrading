@@ -13,6 +13,7 @@ import {
 export default function Hero() {
   const router = useRouter();
   const [recentTrades, setRecentTrades] = useState<HomeTrade[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedBioguide, setSelectedBioguide] = useState<string | null>(null);
 
   useEffect(() => {
@@ -21,6 +22,8 @@ export default function Hero() {
     const loadTrades = async () => {
       let attempt = 0;
       const maxAttempts = 3;
+
+      setIsLoading(true);
 
       while (attempt < maxAttempts && !cancelled) {
         try {
@@ -37,10 +40,14 @@ export default function Hero() {
 
           setRecentTrades(trades);
           setSelectedBioguide(trades.length > 0 ? trades[0].bioguide : null);
+          setIsLoading(false);
           return;
         } catch {
           attempt += 1;
           if (attempt >= maxAttempts || cancelled) {
+            if (!cancelled) {
+              setIsLoading(false);
+            }
             return;
           }
 
@@ -83,6 +90,7 @@ export default function Hero() {
               titleBorderColor="#bbf7d0"
               titleBackgroundColor="#dcfce7"
               chartColor="#10b981"
+              isLoading={isLoading}
               emptyMessage="No purchase trades in current data"
               trades={purchaseTrades}
             />
@@ -94,6 +102,7 @@ export default function Hero() {
               titleBorderColor="#fecaca"
               titleBackgroundColor="#fee2e2"
               chartColor="#ef4444"
+              isLoading={isLoading}
               emptyMessage="No sale trades in current data"
               trades={saleTrades}
             />
@@ -104,6 +113,7 @@ export default function Hero() {
           <h2 className="mb-6 text-center text-2xl font-black tracking-wide text-purple-800 sm:text-3xl">Most Prolific Traders</h2>
           <ProlificTradersTable
             groups={groupedCongressmen}
+            isLoading={isLoading}
             selectedBioguide={selectedBioguide}
             onHoverRow={setSelectedBioguide}
             onOpenMember={(bioguide) => router.push(`/congressman/${bioguide}`)}

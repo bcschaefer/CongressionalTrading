@@ -21,6 +21,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const REPORT_HREF = '/report';
+const GITHUB_HREF = 'https://github.com/bcschaefer/CongressionalTrading';
 
 type SearchResult = {
   type: 'member' | 'stock';
@@ -209,6 +210,22 @@ export default function NavBar() {
           <Link href="/" className="site-nav-brand" aria-label="Go to Home">
           InsideTrader
         </Link>
+
+          <a
+            href={GITHUB_HREF}
+            target="_blank"
+            rel="noreferrer"
+            className="site-nav-github"
+            aria-label="Open project GitHub repository"
+            title="View on GitHub"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="site-nav-github-icon">
+              <path
+                fill="currentColor"
+                d="M12 .5C5.649.5.5 5.649.5 12c0 5.084 3.292 9.398 7.861 10.92.575.106.785-.25.785-.555 0-.274-.01-1-.016-1.962-3.198.695-3.873-1.541-3.873-1.541-.523-1.328-1.277-1.682-1.277-1.682-1.044-.714.079-.699.079-.699 1.154.081 1.761 1.185 1.761 1.185 1.025 1.757 2.69 1.25 3.345.956.104-.743.401-1.25.729-1.538-2.553-.291-5.238-1.277-5.238-5.683 0-1.255.448-2.281 1.183-3.085-.119-.291-.512-1.462.112-3.048 0 0 .965-.309 3.162 1.179A10.98 10.98 0 0 1 12 6.07c.975.005 1.958.132 2.875.387 2.195-1.488 3.158-1.179 3.158-1.179.626 1.586.233 2.757.114 3.048.737.804 1.181 1.83 1.181 3.085 0 4.417-2.689 5.389-5.251 5.675.413.355.781 1.055.781 2.126 0 1.536-.014 2.775-.014 3.153 0 .308.207.667.79.554C20.21 21.394 23.5 17.082 23.5 12 23.5 5.649 18.351.5 12 .5Z"
+              />
+            </svg>
+          </a>
       </nav>
     </header>
 
@@ -245,6 +262,33 @@ export default function NavBar() {
           flex: 1;
           min-width: 220px;
           max-width: 520px;
+        }
+
+        .site-nav-github {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 42px;
+          height: 42px;
+          flex-shrink: 0;
+          border-radius: 9999px;
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          background: rgba(15, 23, 42, 0.22);
+          color: #ffffff;
+          box-shadow: 0 2px 10px rgba(15, 23, 42, 0.2);
+          transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .site-nav-github:hover {
+          transform: translateY(-1px);
+          background: rgba(15, 23, 42, 0.38);
+          border-color: rgba(255, 255, 255, 0.6);
+          box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
+        }
+
+        .site-nav-github-icon {
+          width: 19px;
+          height: 19px;
         }
 
         .site-nav-search-form {
@@ -448,6 +492,11 @@ export default function NavBar() {
             max-width: none;
             min-width: 0;
           }
+
+          .site-nav-github {
+            order: 4;
+            margin-left: auto;
+          }
         }
 
         @media (max-width: 640px) {
@@ -477,6 +526,13 @@ export default function NavBar() {
 
           .site-nav-search-wrap {
             order: 3;
+          }
+
+          .site-nav-github {
+            order: 4;
+            margin: 0 auto;
+            width: 38px;
+            height: 38px;
           }
 
           .site-nav-search-form {
