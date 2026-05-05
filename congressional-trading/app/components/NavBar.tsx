@@ -22,6 +22,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const REPORT_HREF = '/report';
 const GITHUB_HREF = 'https://github.com/bcschaefer/CongressionalTrading';
+const LINKEDIN_HREF = 'https://www.linkedin.com/in/benjamincschaefer/';
 
 type SearchResult = {
   type: 'member' | 'stock';
@@ -173,7 +174,13 @@ export default function NavBar() {
                 aria-label="Search stock or representative"
               />
               <button type="submit" className="site-nav-search-btn">
-                Search
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="site-nav-search-btn-icon">
+                  <path
+                    fill="currentColor"
+                    d="M10.5 3a7.5 7.5 0 0 1 5.916 12.112l4.736 4.736a1 1 0 0 1-1.414 1.414l-4.736-4.736A7.5 7.5 0 1 1 10.5 3Zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z"
+                  />
+                </svg>
+                <span className="site-nav-sr-only">Search</span>
               </button>
           </form>
 
@@ -211,21 +218,39 @@ export default function NavBar() {
           InsideTrader
         </Link>
 
-          <a
-            href={GITHUB_HREF}
-            target="_blank"
-            rel="noreferrer"
-            className="site-nav-github"
-            aria-label="Open project GitHub repository"
-            title="View on GitHub"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true" className="site-nav-github-icon">
-              <path
-                fill="currentColor"
-                d="M12 .5C5.649.5.5 5.649.5 12c0 5.084 3.292 9.398 7.861 10.92.575.106.785-.25.785-.555 0-.274-.01-1-.016-1.962-3.198.695-3.873-1.541-3.873-1.541-.523-1.328-1.277-1.682-1.277-1.682-1.044-.714.079-.699.079-.699 1.154.081 1.761 1.185 1.761 1.185 1.025 1.757 2.69 1.25 3.345.956.104-.743.401-1.25.729-1.538-2.553-.291-5.238-1.277-5.238-5.683 0-1.255.448-2.281 1.183-3.085-.119-.291-.512-1.462.112-3.048 0 0 .965-.309 3.162 1.179A10.98 10.98 0 0 1 12 6.07c.975.005 1.958.132 2.875.387 2.195-1.488 3.158-1.179 3.158-1.179.626 1.586.233 2.757.114 3.048.737.804 1.181 1.83 1.181 3.085 0 4.417-2.689 5.389-5.251 5.675.413.355.781 1.055.781 2.126 0 1.536-.014 2.775-.014 3.153 0 .308.207.667.79.554C20.21 21.394 23.5 17.082 23.5 12 23.5 5.649 18.351.5 12 .5Z"
-              />
-            </svg>
-          </a>
+          <div className="site-nav-social">
+            <a
+              href={LINKEDIN_HREF}
+              target="_blank"
+              rel="noreferrer"
+              className="site-nav-social-btn site-nav-linkedin"
+              aria-label="Open Benjamin Schaefer LinkedIn profile"
+              title="View on LinkedIn"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="site-nav-social-icon">
+                <path
+                  fill="currentColor"
+                  d="M20.45 20.45h-3.554v-5.57c0-1.328-.026-3.037-1.851-3.037-1.852 0-2.136 1.446-2.136 2.94v5.667H9.346V9h3.414v1.561h.049c.476-.9 1.637-1.85 3.369-1.85 3.601 0 4.266 2.369 4.266 5.455v6.284ZM5.337 7.433a2.064 2.064 0 1 1 0-4.129 2.064 2.064 0 0 1 0 4.129ZM7.114 20.45H3.56V9h3.554v11.45ZM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.226.792 24 1.771 24h20.454C23.204 24 24 23.226 24 22.271V1.729C24 .774 23.204 0 22.225 0Z"
+                />
+              </svg>
+            </a>
+
+            <a
+              href={GITHUB_HREF}
+              target="_blank"
+              rel="noreferrer"
+              className="site-nav-social-btn site-nav-github"
+              aria-label="Open project GitHub repository"
+              title="View on GitHub"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="site-nav-social-icon">
+                <path
+                  fill="currentColor"
+                  d="M12 .5C5.649.5.5 5.649.5 12c0 5.084 3.292 9.398 7.861 10.92.575.106.785-.25.785-.555 0-.274-.01-1-.016-1.962-3.198.695-3.873-1.541-3.873-1.541-.523-1.328-1.277-1.682-1.277-1.682-1.044-.714.079-.699.079-.699 1.154.081 1.761 1.185 1.761 1.185 1.025 1.757 2.69 1.25 3.345.956.104-.743.401-1.25.729-1.538-2.553-.291-5.238-1.277-5.238-5.683 0-1.255.448-2.281 1.183-3.085-.119-.291-.512-1.462.112-3.048 0 0 .965-.309 3.162 1.179A10.98 10.98 0 0 1 12 6.07c.975.005 1.958.132 2.875.387 2.195-1.488 3.158-1.179 3.158-1.179.626 1.586.233 2.757.114 3.048.737.804 1.181 1.83 1.181 3.085 0 4.417-2.689 5.389-5.251 5.675.413.355.781 1.055.781 2.126 0 1.536-.014 2.775-.014 3.153 0 .308.207.667.79.554C20.21 21.394 23.5 17.082 23.5 12 23.5 5.649 18.351.5 12 .5Z"
+                />
+              </svg>
+            </a>
+          </div>
       </nav>
     </header>
 
@@ -264,7 +289,14 @@ export default function NavBar() {
           max-width: 520px;
         }
 
-        .site-nav-github {
+        .site-nav-social {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+
+        .site-nav-social-btn {
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -279,16 +311,20 @@ export default function NavBar() {
           transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
 
-        .site-nav-github:hover {
+        .site-nav-social-btn:hover {
           transform: translateY(-1px);
           background: rgba(15, 23, 42, 0.38);
           border-color: rgba(255, 255, 255, 0.6);
           box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
         }
 
-        .site-nav-github-icon {
+        .site-nav-social-icon {
           width: 19px;
           height: 19px;
+        }
+
+        .site-nav-linkedin {
+          background: rgba(10, 102, 194, 0.35);
         }
 
         .site-nav-search-form {
@@ -325,15 +361,35 @@ export default function NavBar() {
         }
 
         .site-nav-search-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           border: 1px solid rgba(255, 255, 255, 0.4);
           background: rgba(15, 23, 42, 0.25);
           color: #ffffff;
           border-radius: 9999px;
-          padding: 9px 12px;
-          font-size: 13px;
-          font-weight: 700;
+          width: 40px;
+          height: 40px;
+          padding: 0;
           cursor: pointer;
           transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .site-nav-search-btn-icon {
+          width: 18px;
+          height: 18px;
+        }
+
+        .site-nav-sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
         }
 
         .site-nav-search-btn:hover {
@@ -493,7 +549,7 @@ export default function NavBar() {
             min-width: 0;
           }
 
-          .site-nav-github {
+          .site-nav-social {
             order: 4;
             margin-left: auto;
           }
@@ -528,25 +584,40 @@ export default function NavBar() {
             order: 3;
           }
 
-          .site-nav-github {
-            order: 4;
-            margin: 0 auto;
-            width: 38px;
-            height: 38px;
-          }
-
-          .site-nav-search-form {
+          .site-nav-social {
+            order: 3;
+            margin-left: 6px;
+            margin-right: 0;
             gap: 6px;
           }
 
+          .site-nav-social-btn {
+            width: 34px;
+            height: 34px;
+          }
+
+          .site-nav-social-icon {
+            width: 16px;
+            height: 16px;
+          }
+
+          .site-nav-search-form {
+            gap: 4px;
+          }
+
           .site-nav-search-input {
-            font-size: 13px;
-            padding: 9px 12px;
+            font-size: 12px;
+            padding: 8px 10px;
           }
 
           .site-nav-search-btn {
-            padding: 8px 10px;
-            font-size: 12px;
+            width: 34px;
+            height: 34px;
+          }
+
+          .site-nav-search-btn-icon {
+            width: 15px;
+            height: 15px;
           }
         }
       `}</style>
