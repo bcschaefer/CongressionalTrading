@@ -20,6 +20,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/stocks', label: 'Stocks', isActive: (pathname) => pathname.startsWith('/stocks') },
 ];
 
+const REPORT_HREF = '/report';
+
 type SearchResult = {
   type: 'member' | 'stock';
   label: string;
@@ -145,7 +147,15 @@ export default function NavBar() {
                 </Link>
               );
             })}
-        </div>
+            <a
+              href={REPORT_HREF}
+              target="_blank"
+              rel="noreferrer"
+              className="site-nav-pill site-nav-pill-report"
+            >
+              Report
+            </a>
+          </div>
 
           <div className="site-nav-search-wrap" ref={searchRef}>
             <form onSubmit={onSubmit} className="site-nav-search-form" role="search" aria-label="Global search">
@@ -227,6 +237,7 @@ export default function NavBar() {
           align-items: center;
           gap: 10px;
           flex-shrink: 0;
+          flex-wrap: wrap;
         }
 
         .site-nav-search-wrap {
@@ -257,6 +268,10 @@ export default function NavBar() {
 
         .site-nav-search-input::placeholder {
           color: rgba(255, 255, 255, 0.7);
+        }
+
+        .site-nav-pill-report {
+          background: rgba(15, 23, 42, 0.26);
         }
 
         .site-nav-search-input:focus {
@@ -414,19 +429,16 @@ export default function NavBar() {
             flex-wrap: wrap;
             padding: 14px 16px;
             gap: 10px;
-            align-items: stretch;
           }
 
           .site-nav-links {
-            order: 2;
+            order: 1;
             flex-wrap: wrap;
           }
 
           .site-nav-brand {
-            order: 1;
-            margin-left: 0;
-            width: 100%;
-            text-align: center;
+            order: 2;
+            margin-left: auto;
             font-size: 28px;
           }
 
@@ -442,26 +454,17 @@ export default function NavBar() {
           .site-nav-inner {
             padding: 12px;
             gap: 8px;
-            align-items: stretch;
           }
 
           .site-nav-links {
             width: 100%;
-            justify-content: flex-start;
-            overflow-x: auto;
-            flex-wrap: nowrap;
-            padding-bottom: 2px;
+            justify-content: center;
             order: 2;
-          }
-
-          .site-nav-links::-webkit-scrollbar {
-            height: 0;
           }
 
           .site-nav-pill {
             font-size: 12px;
             padding: 7px 10px;
-            white-space: nowrap;
           }
 
           .site-nav-brand {
@@ -481,7 +484,6 @@ export default function NavBar() {
           }
 
           .site-nav-search-input {
-            min-width: 0;
             font-size: 13px;
             padding: 9px 12px;
           }
@@ -489,17 +491,6 @@ export default function NavBar() {
           .site-nav-search-btn {
             padding: 8px 10px;
             font-size: 12px;
-          }
-
-          .site-nav-search-dropdown {
-            max-height: 52vh;
-            overflow-y: auto;
-          }
-        }
-
-        @media (max-width: 520px) {
-          .site-nav-search-btn {
-            display: none;
           }
         }
       `}</style>

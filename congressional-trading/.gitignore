@@ -43,3 +43,8 @@ next-env.d.ts
 
 /app/generated/prisma
 .env*.local
+
+# generated House disclosure artifacts
+*FD.txt
+*FD.xml
+*FD.zip
