@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import FilterDropdown from '@/app/components/FilterDropdown';
 
 type Member = {
   bioguide: string;
@@ -47,94 +48,35 @@ function formatNetWorth(n: number | null): string {
   return `$${n.toFixed(0)}`;
 }
 
-type DropdownOption = { value: string; label: string };
+// ─── Sort helpers ─────────────────────────────────────────────────────────────
 
-function FilterDropdown({ label, value, onChange, options }: {
+function SortIcon({ columnKey, sortKey, sortDir }: { columnKey: SortKey; sortKey: SortKey; sortDir: 'asc' | 'desc' }) {
+  if (sortKey !== columnKey) return <span className="ml-1 text-slate-300">↕</span>;
+  return <span className="ml-1 text-indigo-500">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+}
+
+type ThProps = {
+  columnKey: SortKey;
   label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: DropdownOption[];
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const selectedLabel = options.find((o) => o.value === value)?.label ?? value;
+  align?: 'left' | 'center' | 'right';
+  sortKey: SortKey;
+  sortDir: 'asc' | 'desc';
+  onSort: (k: SortKey) => void;
+};
 
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, []);
-
+function Th({ columnKey, label, align = 'left', sortKey, sortDir, onSort }: ThProps) {
   return (
-    <div ref={ref} style={{ display: 'flex', flexDirection: 'column', gap: '2px', position: 'relative' }}>
-      <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8' }}>{label}</span>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '6px 10px',
-          borderRadius: '8px',
-          border: '1.5px solid #e2e8f0',
-          background: open ? '#f1f5f9' : '#f8fafc',
-          color: '#374151',
-          fontSize: '13px',
-          fontWeight: 600,
-          cursor: 'pointer',
-          outline: 'none',
-          whiteSpace: 'nowrap',
-          minWidth: '110px',
-          justifyContent: 'space-between',
-        }}
-      >
-        <span>{selectedLabel}</span>
-        <span style={{ fontSize: '10px', color: '#6b7280', marginLeft: '4px' }}>{open ? '▴' : '▾'}</span>
-      </button>
-      {open && (
-        <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 4px)',
-          left: 0,
-          zIndex: 50,
-          background: '#fff',
-          border: '1.5px solid #e2e8f0',
-          borderRadius: '10px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
-          minWidth: '140px',
-          overflow: 'hidden',
-        }}>
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => { onChange(opt.value); setOpen(false); }}
-              style={{
-                display: 'block',
-                width: '100%',
-                textAlign: 'left',
-                padding: '8px 12px',
-                fontSize: '13px',
-                fontWeight: opt.value === value ? 700 : 500,
-                color: opt.value === value ? '#6366f1' : '#374151',
-                background: opt.value === value ? '#f5f3ff' : 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => { if (opt.value !== value) (e.currentTarget as HTMLButtonElement).style.background = '#f8fafc'; }}
-              onMouseLeave={(e) => { if (opt.value !== value) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <th
+      onClick={() => onSort(columnKey)}
+      className={`cursor-pointer select-none whitespace-nowrap border-b border-slate-200 bg-slate-50 px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wide ${sortKey === columnKey ? 'text-indigo-500' : 'text-slate-500'}`}
+      style={{ textAlign: align }}
+    >
+      {label}<SortIcon columnKey={columnKey} sortKey={sortKey} sortDir={sortDir} />
+    </th>
   );
 }
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RepresentativesPage() {
   const router = useRouter();
@@ -147,8 +89,6 @@ export default function RepresentativesPage() {
   const [sortKey, setSortKey] = useState<SortKey>('net_worth');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [hoveredBioguide, setHoveredBioguide] = useState<string | null>(null);
-
-  const isSearching = query.trim().length > 0;
 
   useEffect(() => {
     fetch('/api/members')
@@ -211,39 +151,12 @@ export default function RepresentativesPage() {
     });
 
     return list;
-  }, [members, query, isSearching, partyFilter, chamberFilter, activeFilter, sortKey, sortDir]);
+  }, [members, query, partyFilter, chamberFilter, activeFilter, sortKey, sortDir]);
 
-  function SortIcon({ k }: { k: SortKey }) {
-    if (sortKey !== k) return <span style={{ color: '#cbd5e1', marginLeft: 4 }}>↕</span>;
-    return <span style={{ color: '#6366f1', marginLeft: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
-  }
-
-  function Th({ k, label, align = 'left' }: { k: SortKey; label: string; align?: string }) {
-    return (
-      <th
-        onClick={() => handleSort(k)}
-        style={{
-          padding: '10px 14px',
-          textAlign: align as React.CSSProperties['textAlign'],
-          fontSize: '11px',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          color: sortKey === k ? '#6366f1' : '#64748b',
-          cursor: 'pointer',
-          userSelect: 'none',
-          whiteSpace: 'nowrap',
-          background: '#f8fafc',
-          borderBottom: '1px solid #e2e8f0',
-        }}
-      >
-        {label}<SortIcon k={k} />
-      </th>
-    );
-  }
+  const thProps = { sortKey, sortDir, onSort: handleSort };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div
         className="text-white"
@@ -272,19 +185,7 @@ export default function RepresentativesPage() {
               placeholder="Search members…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              style={{
-                width: '100%',
-                maxWidth: '480px',
-                borderRadius: '10px',
-                border: 'none',
-                background: 'rgba(255,255,255,0.15)',
-                color: '#fff',
-                padding: '10px 16px',
-                fontSize: '14px',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              className="placeholder:text-white/50 focus:bg-white/25"
+              className="w-full max-w-120 rounded-xl border-none bg-white/15 px-4 py-2.5 text-[14px] text-white outline-none placeholder:text-white/50 focus:bg-white/25 box-border"
             />
           </div>
         </div>
@@ -324,7 +225,7 @@ export default function RepresentativesPage() {
               { value: 'I', label: 'Independent' },
             ]}
           />
-          <span className="ml-0 text-xs text-gray-400 sm:ml-auto" style={{ alignSelf: 'flex-end', paddingBottom: '6px' }}>
+          <span className="ml-0 self-end pb-1.5 text-xs text-gray-400 sm:ml-auto">
             {filtered.length} result{filtered.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -343,13 +244,13 @@ export default function RepresentativesPage() {
               <table className="w-full" style={{ borderCollapse: 'collapse', minWidth: '700px' }}>
                 <thead>
                   <tr>
-                    <Th k="full_name" label="Name" />
-                    <Th k="chamber" label="Chamber" align="center" />
-                    <Th k="party" label="Party" align="center" />
-                    <Th k="state" label="State" align="center" />
-                    <Th k="net_worth" label="Net Worth" align="right" />
-                    <Th k="first_year" label="First Filing" align="center" />
-                    <Th k="last_year" label="Last Filing" align="center" />
+                    <Th columnKey="full_name" label="Name" {...thProps} />
+                    <Th columnKey="chamber" label="Chamber" align="center" {...thProps} />
+                    <Th columnKey="party" label="Party" align="center" {...thProps} />
+                    <Th columnKey="state" label="State" align="center" {...thProps} />
+                    <Th columnKey="net_worth" label="Net Worth" align="right" {...thProps} />
+                    <Th columnKey="first_year" label="First Filing" align="center" {...thProps} />
+                    <Th columnKey="last_year" label="Last Filing" align="center" {...thProps} />
                   </tr>
                 </thead>
                 <tbody>
@@ -361,45 +262,43 @@ export default function RepresentativesPage() {
                         onClick={() => router.push(`/congressman/${m.bioguide}`)}
                         onMouseEnter={() => { setHoveredBioguide(m.bioguide); router.prefetch(`/congressman/${m.bioguide}`); }}
                         onMouseLeave={() => setHoveredBioguide(null)}
-                        style={{
-                          background: hoveredBioguide === m.bioguide ? '#eff6ff' : index % 2 === 0 ? '#fff' : '#f8fafc',
-                          cursor: 'pointer',
-                          transition: 'background 0.12s',
-                        }}
+                        className="cursor-pointer transition-colors duration-100"
+                        style={{ background: hoveredBioguide === m.bioguide ? '#eff6ff' : index % 2 === 0 ? '#fff' : '#f8fafc' }}
                       >
-                        <td style={{ padding: '10px 14px', fontSize: '14px', whiteSpace: 'nowrap' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <td className="whitespace-nowrap px-3.5 py-2.5 text-[14px]">
+                          <div className="flex items-center gap-2">
                             {m.is_active && (
-                              <span style={{ width: '7px', height: '7px', borderRadius: '9999px', background: '#16a34a', flexShrink: 0 }} />
+                              <span className="h-1.75 w-1.75 shrink-0 rounded-full bg-green-600" />
                             )}
-                            <span style={{ fontWeight: 600, color: m.is_active ? '#111827' : '#9ca3af' }}>{m.full_name}</span>
+                            <span className={`font-semibold ${m.is_active ? 'text-gray-900' : 'text-gray-400'}`}>{m.full_name}</span>
                           </div>
                         </td>
-                        <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                        <td className="whitespace-nowrap px-3.5 py-2.5 text-center text-[13px]">
                           {m.chamber ? (
-                            <span style={{
-                              padding: '2px 8px',
-                              borderRadius: '9999px',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              background: m.chamber.toLowerCase() === 'senate' ? '#f3e8ff' : '#dcfce7',
-                              color: m.chamber.toLowerCase() === 'senate' ? '#7c3aed' : '#15803d',
-                            }}>{chamberLabel(m.chamber)}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                              m.chamber.toLowerCase() === 'senate'
+                                ? 'bg-purple-100 text-purple-700'
+                                : 'bg-green-100 text-green-700'
+                            }`}>{chamberLabel(m.chamber)}</span>
                           ) : '—'}
                         </td>
-                        <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '13px', whiteSpace: 'nowrap', color: partyTextColor, fontWeight: 600 }}>
+                        <td className="whitespace-nowrap px-3.5 py-2.5 text-center text-[13px] font-semibold" style={{ color: partyTextColor }}>
                           {m.party ? partyLabel(m.party) : '—'}
                         </td>
-                        <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#374151' }}>
+                        <td className="px-3.5 py-2.5 text-center text-[13px] font-semibold text-gray-700">
                           {m.state ?? '—'}
                         </td>
-                        <td style={{ padding: '10px 14px', textAlign: 'right', fontSize: '13px', fontWeight: 700, color: m.net_worth && m.net_worth > 0 ? '#15803d' : '#9ca3af', whiteSpace: 'nowrap' }}>
+                        <td className={`whitespace-nowrap px-3.5 py-2.5 text-right text-[13px] font-bold ${
+                          m.net_worth && m.net_worth > 0 ? 'text-green-700' : 'text-gray-400'
+                        }`}>
                           {formatNetWorth(m.net_worth)}
                         </td>
-                        <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '13px', color: '#6b7280' }}>
+                        <td className="px-3.5 py-2.5 text-center text-[13px] text-gray-500">
                           {m.first_year ?? '—'}
                         </td>
-                        <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '13px', color: m.is_active ? '#15803d' : '#6b7280', fontWeight: m.is_active ? 600 : 400 }}>
+                        <td className={`px-3.5 py-2.5 text-center text-[13px] ${
+                          m.is_active ? 'font-semibold text-green-700' : 'text-gray-500'
+                        }`}>
                           {m.is_active ? 'Active' : (m.last_year ?? '—')}
                         </td>
                       </tr>

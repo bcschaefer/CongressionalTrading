@@ -138,16 +138,13 @@ export default function TradeBarChart({
         .append('rect')
         .attr('class', 'bar-purchase')
         .attr('x', (d) => (x0(d) ?? 0) + (x1('purchase') ?? 0))
-        .attr('y', innerHeight)
+        .attr('y', (d) => y(purchaseByTicker.get(d)!))
         .attr('width', x1.bandwidth())
-        .attr('height', 0)
+        .attr('height', (d) => innerHeight - y(purchaseByTicker.get(d)!))
         .attr('fill', '#10b981')
         .attr('rx', 3)
         .attr('cursor', 'pointer')
-        .on('click', (_e, d) => router.push(`/stocks/${d}`))
-        .transition().duration(700).ease(d3.easeCubic)
-        .attr('y', (d) => y(purchaseByTicker.get(d)!))
-        .attr('height', (d) => innerHeight - y(purchaseByTicker.get(d)!));
+        .on('click', (_e, d) => router.push(`/stocks/${d}`));
 
       // Sale bars (red)
       const saleTickers = allTickers.filter((t) => saleByTicker.has(t));
@@ -157,16 +154,13 @@ export default function TradeBarChart({
         .append('rect')
         .attr('class', 'bar-sale')
         .attr('x', (d) => (x0(d) ?? 0) + (x1('sale') ?? 0))
-        .attr('y', innerHeight)
+        .attr('y', (d) => y(saleByTicker.get(d)!))
         .attr('width', x1.bandwidth())
-        .attr('height', 0)
+        .attr('height', (d) => innerHeight - y(saleByTicker.get(d)!))
         .attr('fill', '#ef4444')
         .attr('rx', 3)
         .attr('cursor', 'pointer')
-        .on('click', (_e, d) => router.push(`/stocks/${d}`))
-        .transition().duration(700).ease(d3.easeCubic)
-        .attr('y', (d) => y(saleByTicker.get(d)!))
-        .attr('height', (d) => innerHeight - y(saleByTicker.get(d)!));
+        .on('click', (_e, d) => router.push(`/stocks/${d}`));
 
       // Legend
       const legend = svg.append('g').attr('transform', `translate(${margin.left}, 8)`);
@@ -254,21 +248,16 @@ export default function TradeBarChart({
       .append('rect')
       .attr('class', 'bar')
       .attr('x', (d) => x(d.key) ?? 0)
-      .attr('y', innerHeight)
+      .attr('y', (d) => y(d.amount))
       .attr('width', x.bandwidth())
-      .attr('height', 0)
+      .attr('height', (d) => innerHeight - y(d.amount))
       .attr('fill', color)
       .attr('rx', 4)
       .attr('cursor', 'pointer')
       .on('click', (_event, d) => {
         const ticker = d.label;
         if (ticker) router.push(`/stocks/${ticker}`);
-      })
-      .transition()
-      .duration(700)
-      .ease(d3.easeCubic)
-      .attr('y', (d) => y(d.amount))
-      .attr('height', (d) => innerHeight - y(d.amount));
+      });
 
     g.selectAll('.label')
       .data(series)

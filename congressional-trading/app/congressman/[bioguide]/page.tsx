@@ -44,19 +44,39 @@ function partyInfo(party: string | null): { label: string; color: string } {
 
 function bannerStyleForParty(party: string | null): { background: string } {
   const p = (party ?? '').trim().toUpperCase();
-  if (p === 'D' || p.startsWith('DEM')) {
-    return {
-      background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #60a5fa 100%)',
-    };
-  }
-  if (p === 'R' || p.startsWith('REP')) {
-    return {
-      background: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 45%, #fb7185 100%)',
-    };
-  }
-  return {
-    background: 'linear-gradient(135deg, #6d28d9 0%, #7c3aed 45%, #a78bfa 100%)',
-  };
+  if (p === 'D' || p.startsWith('DEM'))
+    return { background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #60a5fa 100%)' };
+  if (p === 'R' || p.startsWith('REP'))
+    return { background: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 45%, #fb7185 100%)' };
+  return { background: 'linear-gradient(135deg, #6d28d9 0%, #7c3aed 45%, #a78bfa 100%)' };
+}
+
+function pillBgForParty(party: string | null): string {
+  const p = (party ?? '').trim().toUpperCase();
+  if (p === 'D' || p.startsWith('DEM')) return 'rgba(30,58,138,0.7)';
+  if (p === 'R' || p.startsWith('REP')) return 'rgba(127,29,29,0.7)';
+  return 'rgba(0,0,0,0.35)';
+}
+
+type TabId = 'trades' | 'voting' | 'conflicts';
+const TAB_LABELS: Record<TabId, string> = { trades: 'Trades', voting: 'Voting History', conflicts: 'Potential Conflicts' };
+
+function TabBar({ activeTab, onSelect }: { activeTab: TabId; onSelect: (tab: TabId) => void }) {
+  return (
+    <div className="mb-7 flex gap-2 border-b-2 border-gray-200">
+      {(Object.keys(TAB_LABELS) as TabId[]).map((tab) => (
+        <button
+          key={tab}
+          type="button"
+          onClick={() => onSelect(tab)}
+          style={{ borderBottom: activeTab === tab ? '3px solid #1d4ed8' : '3px solid transparent', marginBottom: '-2px' }}
+          className={`cursor-pointer border-0 bg-transparent px-5.5 py-2.5 text-sm transition-all ${activeTab === tab ? 'font-bold text-blue-700' : 'font-medium text-gray-500'}`}
+        >
+          {TAB_LABELS[tab]}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 type TradeDirection = 'purchase' | 'sale' | 'other';
@@ -261,13 +281,9 @@ export default function CongressmanPage() {
             {/* Info */}
             <div className="min-w-0 py-2">
               <h1 className="text-3xl font-bold tracking-tight md:text-5xl">{member.full_name}</h1>
+            {/* Party / chamber / term pills */}
               {(() => {
-                const p = (member.party ?? '').trim().toUpperCase();
-                const pillBg = p === 'D' || p.startsWith('DEM')
-                  ? 'rgba(30,58,138,0.7)'   // dark blue
-                  : p === 'R' || p.startsWith('REP')
-                  ? 'rgba(127,29,29,0.7)'   // dark red
-                  : 'rgba(0,0,0,0.35)';
+                const pillBg = pillBgForParty(member.party);
                 const pillStyle = {
                   background: pillBg,
                   color: '#fff',
@@ -357,47 +373,7 @@ export default function CongressmanPage() {
           <NetWorthLineChart data={netWorthHistory} isLoading={historyLoading} />
         </div>
 
-        {/* Tab Navigation */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '8px',
-            marginBottom: '28px',
-            borderBottom: '2px solid #e5e7eb',
-            paddingBottom: '0',
-          }}
-        >
-          {(['trades', 'voting', 'conflicts'] as const).map((tab) => {
-            const labels: Record<typeof tab, string> = {
-              trades: 'Trades',
-              voting: 'Voting History',
-              conflicts: 'Potential Conflicts',
-            };
-            const active = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  padding: '10px 22px',
-                  fontSize: '14px',
-                  fontWeight: active ? 700 : 500,
-                  color: active ? '#1d4ed8' : '#6b7280',
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: active ? '3px solid #1d4ed8' : '3px solid transparent',
-                  marginBottom: '-2px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s',
-                  borderRadius: '0',
-                }}
-              >
-                {labels[tab]}
-              </button>
-            );
-          })}
-        </div>
+        <TabBar activeTab={activeTab} onSelect={setActiveTab} />
 
         {/* Tab Content */}
         {activeTab === 'trades' ? (
