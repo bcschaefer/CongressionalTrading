@@ -58,8 +58,8 @@ function pillBgForParty(party: string | null): string {
   return 'rgba(0,0,0,0.35)';
 }
 
-type TabId = 'trades' | 'voting' | 'conflicts';
-const TAB_LABELS: Record<TabId, string> = { trades: 'Trades', voting: 'Voting History', conflicts: 'Potential Conflicts' };
+type TabId = 'trades' | 'networth' | 'voting' | 'conflicts';
+const TAB_LABELS: Record<TabId, string> = { trades: 'Trades', networth: 'Net Worth', voting: 'Voting History', conflicts: 'Potential Conflicts' };
 
 function TabBar({ activeTab, onSelect }: { activeTab: TabId; onSelect: (tab: TabId) => void }) {
   return (
@@ -105,7 +105,8 @@ export default function CongressmanPage() {
   const [netWorth, setNetWorth] = useState<NetWorthData | null>(null);
   const [annualDisclosures, setAnnualDisclosures] = useState<AnnualDisclosureItem[]>([]);
   const [failedImageBioguide, setFailedImageBioguide] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'trades' | 'voting' | 'conflicts'>('trades');
+  const [activeTab, setActiveTab] = useState<TabId>('trades');
+  const [tradeView, setTradeView] = useState<'ticker' | 'year'>('year');
   const [netWorthHistory, setNetWorthHistory] = useState<NetWorthHistoryPoint[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [votes, setVotes] = useState<VoteRecord[]>([]);
@@ -260,8 +261,32 @@ export default function CongressmanPage() {
   const tradeCharts = useMemo(
     () => (
       <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 overflow-hidden">
-        <h2 style={{ marginTop: '12px', marginBottom: '14px', textAlign: 'center', fontSize: 'clamp(1.9rem, 8vw, 3rem)', fontWeight: 800, lineHeight: 1.05, color: '#1f2937' }}>
-          Trades by Ticker
+        {/* Toggle */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', marginBottom: '16px', marginTop: '8px' }}>
+          {(['year', 'ticker'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setTradeView(v)}
+              style={{
+                padding: '5px 18px',
+                borderRadius: '9999px',
+                border: '1px solid',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                borderColor: tradeView === v ? '#1d4ed8' : '#e5e7eb',
+                background: tradeView === v ? '#1d4ed8' : '#f9fafb',
+                color: tradeView === v ? '#fff' : '#6b7280',
+              }}
+            >
+              {v === 'ticker' ? 'By Ticker' : 'By Year'}
+            </button>
+          ))}
+        </div>
+        <h2 style={{ marginTop: '4px', marginBottom: '14px', textAlign: 'center', fontSize: 'clamp(1.9rem, 8vw, 3rem)', fontWeight: 800, lineHeight: 1.05, color: '#1f2937' }}>
+          Trades by {tradeView === 'ticker' ? 'Ticker' : 'Year'}
         </h2>
         <div className="w-full overflow-x-auto overflow-y-hidden">
           <TradeBarChart
@@ -269,12 +294,13 @@ export default function CongressmanPage() {
             saleTrades={saleTrades}
             color="#10b981"
             emptyMessage="No trades on record"
-            groupByTicker={true}
+            groupByTicker={tradeView === 'ticker'}
+            groupByYear={tradeView === 'year'}
           />
         </div>
       </div>
     ),
-    [purchaseTrades, saleTrades]
+    [purchaseTrades, saleTrades, tradeView]
   );
 
   if (loading) {
@@ -408,32 +434,31 @@ export default function CongressmanPage() {
       {/* Graphs */}
       <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 md:px-10 md:pb-14 md:pt-8" style={{ marginTop: '24px' }}>
 
-        {/* Net Worth Over Time */}
-        <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 mb-8 overflow-hidden">
-          <h2
-            style={{
-              marginTop: '8px',
-              marginBottom: '6px',
-              textAlign: 'center',
-              fontSize: 'clamp(1.4rem, 5vw, 2rem)',
-              fontWeight: 800,
-              color: '#1e3a8a',
-            }}
-          >
-            Net Worth Over Time
-          </h2>
-          <p style={{ textAlign: 'center', fontSize: '13px', color: '#9ca3af', marginBottom: '16px' }}>
-            Estimated from annual financial disclosures
-          </p>
-          <NetWorthLineChart data={netWorthHistory} isLoading={historyLoading} />
-        </div>
-
         <TabBar activeTab={activeTab} onSelect={setActiveTab} />
 
         {/* Tab Content */}
         {activeTab === 'trades' ? (
+          tradeCharts
+        ) : activeTab === 'networth' ? (
           <div className="space-y-8">
-            {tradeCharts}
+            <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 overflow-hidden">
+              <h2
+                style={{
+                  marginTop: '8px',
+                  marginBottom: '6px',
+                  textAlign: 'center',
+                  fontSize: 'clamp(1.4rem, 5vw, 2rem)',
+                  fontWeight: 800,
+                  color: '#1e3a8a',
+                }}
+              >
+                Net Worth Over Time
+              </h2>
+              <p style={{ textAlign: 'center', fontSize: '13px', color: '#9ca3af', marginBottom: '16px' }}>
+                Estimated from annual financial disclosures
+              </p>
+              <NetWorthLineChart data={netWorthHistory} isLoading={historyLoading} />
+            </div>
             <NetWorthSection netWorth={netWorth} disclosures={disclosuresSorted} />
           </div>
         ) : activeTab === 'voting' ? (

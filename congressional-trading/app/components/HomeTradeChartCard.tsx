@@ -28,7 +28,7 @@ export default function HomeTradeChartCard({
             saleTrades={saleTrades}
             color="#10b981"
             emptyMessage={emptyMessage}
-            groupByTicker={true}
+            groupByYear={true}
           />
         </div>
       )}

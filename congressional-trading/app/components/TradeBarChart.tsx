@@ -8,6 +8,7 @@ type TradeLike = {
   id: number;
   ticker: string;
   amount: number;
+  date?: string;
 };
 
 type TradeBarChartProps = {
@@ -16,6 +17,7 @@ type TradeBarChartProps = {
   color: string;
   emptyMessage: string;
   groupByTicker?: boolean;
+  groupByYear?: boolean;
 };
 
 function formatTick(value: number) {
@@ -30,31 +32,40 @@ export default function TradeBarChart({
   color,
   emptyMessage,
   groupByTicker = false,
+  groupByYear = false,
 }: TradeBarChartProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
-  // Grouped mode: compute purchase + sale maps and merged ticker list
+  // Grouped mode: compute purchase + sale maps and merged ticker/year list
   const groupedData = useMemo(() => {
     if (saleTrades === undefined) return null;
 
-    const purchaseByTicker = new Map<string, number>();
+    const keyOf = (t: TradeLike) =>
+      groupByYear ? String(new Date(t.date ?? '').getFullYear()) : t.ticker;
+
+    const purchaseByKey = new Map<string, number>();
     for (const t of trades) {
-      purchaseByTicker.set(t.ticker, (purchaseByTicker.get(t.ticker) ?? 0) + t.amount);
+      const k = keyOf(t);
+      purchaseByKey.set(k, (purchaseByKey.get(k) ?? 0) + t.amount);
     }
-    const saleByTicker = new Map<string, number>();
+    const saleByKey = new Map<string, number>();
     for (const t of saleTrades) {
-      saleByTicker.set(t.ticker, (saleByTicker.get(t.ticker) ?? 0) + t.amount);
+      const k = keyOf(t);
+      saleByKey.set(k, (saleByKey.get(k) ?? 0) + t.amount);
     }
-    const allTickers = [...new Set([...purchaseByTicker.keys(), ...saleByTicker.keys()])].sort(
-      (a, b) => {
-        const aTotal = (purchaseByTicker.get(a) ?? 0) + (saleByTicker.get(a) ?? 0);
-        const bTotal = (purchaseByTicker.get(b) ?? 0) + (saleByTicker.get(b) ?? 0);
-        return bTotal - aTotal;
-      }
+    const allKeys = [...new Set([...purchaseByKey.keys(), ...saleByKey.keys()])].sort(
+      groupByYear
+        ? (a, b) => Number(a) - Number(b)
+        : (a, b) => {
+            const aTotal = (purchaseByKey.get(a) ?? 0) + (saleByKey.get(a) ?? 0);
+            const bTotal = (purchaseByKey.get(b) ?? 0) + (saleByKey.get(b) ?? 0);
+            return bTotal - aTotal;
+          }
     );
-    return { allTickers, purchaseByTicker, saleByTicker };
-  }, [trades, saleTrades]);
+    return { allTickers: allKeys, purchaseByTicker: purchaseByKey, saleByTicker: saleByKey, yearMode: groupByYear };
+  }, [trades, saleTrades, groupByYear]);
 
   // Single-series mode
   const series = useMemo(() => {
@@ -80,7 +91,12 @@ export default function TradeBarChart({
     if (groupedData) {
       const { allTickers, purchaseByTicker, saleByTicker } = groupedData;
 
-      const width = Math.max(680, allTickers.length * 80);
+      const containerWidth = groupedData.yearMode && containerRef.current
+        ? containerRef.current.offsetWidth
+        : 0;
+      const width = groupedData.yearMode
+        ? Math.max(320, containerWidth)
+        : Math.max(680, allTickers.length * 80);
       const height = 380;
       const margin = { top: 30, right: 20, bottom: 80, left: 64 };
       const innerWidth = width - margin.left - margin.right;
@@ -143,8 +159,8 @@ export default function TradeBarChart({
         .attr('height', (d) => innerHeight - y(purchaseByTicker.get(d)!))
         .attr('fill', '#10b981')
         .attr('rx', 3)
-        .attr('cursor', 'pointer')
-        .on('click', (_e, d) => router.push(`/stocks/${d}`));
+        .attr('cursor', groupedData?.yearMode ? 'default' : 'pointer')
+        .on('click', (_e, d) => { if (!groupedData?.yearMode) router.push(`/stocks/${d}`); });
 
       // Sale bars (red)
       const saleTickers = allTickers.filter((t) => saleByTicker.has(t));
@@ -159,8 +175,8 @@ export default function TradeBarChart({
         .attr('height', (d) => innerHeight - y(saleByTicker.get(d)!))
         .attr('fill', '#ef4444')
         .attr('rx', 3)
-        .attr('cursor', 'pointer')
-        .on('click', (_e, d) => router.push(`/stocks/${d}`));
+        .attr('cursor', groupedData?.yearMode ? 'default' : 'pointer')
+        .on('click', (_e, d) => { if (!groupedData?.yearMode) router.push(`/stocks/${d}`); });
 
       // Legend
       const legend = svg.append('g').attr('transform', `translate(${margin.left}, 8)`);
@@ -273,5 +289,10 @@ export default function TradeBarChart({
       .text((d) => formatTick(d.amount));
   }, [color, emptyMessage, router, series, groupedData]);
 
-  return <svg ref={svgRef} className="block" />;
+  const isYearMode = groupedData?.yearMode ?? false;
+  return (
+    <div ref={containerRef} style={{ width: '100%', overflowX: isYearMode ? 'visible' : 'auto', overflowY: 'hidden' }}>
+      <svg ref={svgRef} className="block" style={isYearMode ? { maxWidth: '100%' } : undefined} />
+    </div>
+  );
 }

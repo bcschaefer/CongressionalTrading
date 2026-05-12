@@ -186,6 +186,15 @@ function isTradeDirection(type: string, dir: 'purchase' | 'sale'): boolean {
   return n === 'S' || n.startsWith('SALE') || n.startsWith('SELL');
 }
 
+type GroupedConflict = {
+  voteDate: string;
+  voteQuestion: string;
+  voteDescription: string;
+  memberVoted: string;
+  matchedKeyword: string;
+  trades: ConflictRecord[];
+};
+
 export default function PotentialConflictsTable({ trades, votes, isLoading, error }: Props) {
   const conflicts = useMemo<ConflictRecord[]>(() => {
     if (!votes.length || !trades.length) return [];
@@ -312,6 +321,26 @@ export default function PotentialConflictsTable({ trades, votes, isLoading, erro
 
   const notReady = isLoading;
 
+  // Group conflicts by vote (voteDate + voteQuestion)
+  const grouped = useMemo<GroupedConflict[]>(() => {
+    const map = new Map<string, GroupedConflict>();
+    for (const c of conflicts) {
+      const key = `${c.voteDate}|${c.voteQuestion}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          voteDate: c.voteDate,
+          voteQuestion: c.voteQuestion,
+          voteDescription: c.voteDescription,
+          memberVoted: c.memberVoted,
+          matchedKeyword: c.matchedKeyword,
+          trades: [],
+        });
+      }
+      map.get(key)!.trades.push(c);
+    }
+    return [...map.values()];
+  }, [conflicts]);
+
   return (
     <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
       <div style={{ padding: '24px 24px 8px' }}>
@@ -329,9 +358,9 @@ export default function PotentialConflictsTable({ trades, votes, isLoading, erro
         <p style={{ textAlign: 'center', fontSize: '13px', color: '#9ca3af', marginBottom: '4px' }}>
           Trades within {WINDOW_DAYS} days of a related vote, plus holdings at vote time
         </p>
-        {!notReady && conflicts.length > 0 && (
+        {!notReady && grouped.length > 0 && (
           <p style={{ textAlign: 'center', fontSize: '12px', color: '#6b7280', marginBottom: '12px' }}>
-            {conflicts.length} potential conflict{conflicts.length !== 1 ? 's' : ''} detected
+            {conflicts.length} potential conflict{conflicts.length !== 1 ? 's' : ''} across {grouped.length} vote{grouped.length !== 1 ? 's' : ''}
           </p>
         )}
       </div>
@@ -355,7 +384,7 @@ export default function PotentialConflictsTable({ trades, votes, isLoading, erro
         <div style={{ padding: '48px', textAlign: 'center' }}>
           <p style={{ fontSize: '14px', color: '#9ca3af' }}>{error}</p>
         </div>
-      ) : conflicts.length === 0 ? (
+      ) : grouped.length === 0 ? (
         <div style={{ padding: '48px', textAlign: 'center' }}>
           <p style={{ fontSize: '14px', color: '#6b7280', fontWeight: 600 }}>No conflicts detected</p>
           <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
@@ -363,114 +392,93 @@ export default function PotentialConflictsTable({ trades, votes, isLoading, erro
           </p>
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '560px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-            <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Vote</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600, color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Voted</th>
-                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Trade</th>
-                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Δ Days</th>
-              </tr>
-            </thead>
-            <tbody>
-              {conflicts.map((c, i) => {
-                const voteLabel = normalizeVoteLabel(c.memberVoted);
-                const voteDateStr = new Date(c.voteDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                const tradeDateStr = new Date(c.tradeDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                const direction = c.deltaDays < 0 ? 'before' : c.deltaDays === 0 ? 'same day as' : 'after';
-                const absDelta = Math.abs(c.deltaDays);
-                return (
-                  <tr
-                    key={i}
-                    style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}
-                  >
-                    {/* Vote */}
-                    <td style={{ padding: '10px 14px', color: '#1f2937', maxWidth: '380px', lineHeight: 1.5, verticalAlign: 'top' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '2px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {c.voteQuestion}
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '2px' }}>
-                        {voteDateStr}
-                      </div>
-                      <div style={{ fontSize: '11px' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                            background: '#eff6ff',
-                            color: '#1d4ed8',
-                            fontWeight: 600,
-                            fontSize: '10px',
-                          }}
-                        >
-                          {c.tradeSector}
-                        </span>
-                        {' '}
-                        <span style={{ color: '#9ca3af' }}>matched on &ldquo;{c.matchedKeyword}&rdquo;</span>
-                      </div>
-                    </td>
+        <div style={{ overflowY: 'auto', maxHeight: '600px', padding: '0 16px 16px' }}>
+          {grouped.map((group, gi) => {
+            const voteLabel = normalizeVoteLabel(group.memberVoted);
+            const voteDateStr = new Date(group.voteDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const voteColor = voteLabel === 'Yes' ? '#16a34a' : voteLabel === 'No' ? '#dc2626' : '#9ca3af';
+            const voteBg = voteLabel === 'Yes' ? '#f0fdf4' : voteLabel === 'No' ? '#fef2f2' : '#f9fafb';
 
-                    {/* Voted */}
-                    <td style={{ padding: '10px 14px', textAlign: 'center', verticalAlign: 'top' }}>
-                      <span
+            return (
+              <div
+                key={gi}
+                style={{
+                  marginTop: '12px',
+                  borderRadius: '10px',
+                  border: '1px solid #e5e7eb',
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Vote header */}
+                <div style={{ background: '#f9fafb', padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '10px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#111827', lineHeight: 1.4, marginBottom: '3px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      {group.voteQuestion}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', color: '#9ca3af' }}>{voteDateStr}</span>
+                      <span style={{ fontSize: '10px', color: '#1d4ed8', background: '#eff6ff', borderRadius: '4px', padding: '1px 6px', fontWeight: 600 }}>
+                        matched on &ldquo;{group.matchedKeyword}&rdquo;
+                      </span>
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      display: 'inline-block',
+                      padding: '4px 12px',
+                      borderRadius: '9999px',
+                      background: voteBg,
+                      color: voteColor,
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Voted {voteLabel}
+                  </span>
+                </div>
+
+                {/* Related trades */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '10px 14px' }}>
+                  {group.trades.map((c, ti) => {
+                    const isHolding = c.conflictType === 'holding';
+                    const label = isHolding ? 'Held' : tradeLabel(c.tradeType);
+                    const dotColor = isHolding ? '#a78bfa' : label === 'Purchase' ? '#4ade80' : '#f87171';
+                    const absDelta = Math.abs(c.deltaDays);
+                    const direction = c.deltaDays < 0 ? 'before' : c.deltaDays === 0 ? 'same day' : 'after';
+                    const deltaLabel = isHolding
+                      ? `${absDelta}d held`
+                      : absDelta === 0 ? 'same day' : `${absDelta}d ${direction}`;
+
+                    return (
+                      <Link
+                        key={ti}
+                        href={`/stocks/${c.ticker}`}
+                        className="group transition-all hover:bg-gray-800 hover:border-gray-800 hover:shadow-md hover:scale-105"
                         style={{
-                          display: 'inline-block',
-                          padding: '3px 10px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          background: '#f3f4f6',
+                          border: '1px solid #e5e7eb',
                           borderRadius: '9999px',
-                          background: voteLabel === 'Yes' ? '#f0fdf4' : voteLabel === 'No' ? '#fef2f2' : '#f9fafb',
-                          color: voteLabel === 'Yes' ? '#16a34a' : voteLabel === 'No' ? '#dc2626' : '#9ca3af',
-                          fontWeight: 700,
-                          fontSize: '12px',
+                          padding: '4px 10px',
+                          textDecoration: 'none',
+                          whiteSpace: 'nowrap',
                         }}
                       >
-                        {voteLabel}
-                      </span>
-                    </td>
-
-                    {/* Trade */}
-                    <td style={{ padding: '10px 14px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                      <Link
-                        href={`/stocks/${c.ticker}`}
-                        style={{ fontWeight: 700, color: '#1d4ed8', textDecoration: 'none' }}
-                      >
-                        {c.ticker}
+                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+                        <span className="group-hover:text-white" style={{ fontWeight: 700, color: '#111827', fontSize: '12px' }}>{c.ticker}</span>
+                        <span className="group-hover:text-gray-300" style={{ fontSize: '11px', color: '#6b7280' }}>{formatMoney(c.tradeAmount)}</span>
+                        <span className="group-hover:text-gray-400" style={{ fontSize: '10px', color: '#9ca3af' }}>{deltaLabel}</span>
                       </Link>
-                      {c.conflictType === 'holding' ? (
-                        <div style={{ fontSize: '11px', color: '#7c3aed', fontWeight: 600 }}>Held</div>
-                      ) : (
-                        <div style={{ fontSize: '11px', color: tradeLabel(c.tradeType) === 'Purchase' ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
-                          {tradeLabel(c.tradeType)}
-                        </div>
-                      )}
-                      <div style={{ fontSize: '11px', color: '#6b7280' }}>{formatMoney(c.tradeAmount)}</div>
-                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-                        {c.conflictType === 'holding' ? `since ${tradeDateStr}` : tradeDateStr}
-                      </div>
-                    </td>
-
-                    {/* Δ Days */}
-                    <td style={{ padding: '10px 14px', textAlign: 'right', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                      {c.conflictType === 'holding' ? (
-                        <>
-                          <span style={{ fontWeight: 700, color: '#7c3aed', fontSize: '14px' }}>{absDelta}d</span>
-                          <div style={{ fontSize: '10px', color: '#9ca3af' }}>held at vote</div>
-                        </>
-                      ) : (
-                        <>
-                          <span style={{ fontWeight: 700, color: '#374151', fontSize: '14px' }}>
-                            {absDelta === 0 ? '0' : `${absDelta}d`}
-                          </span>
-                          <div style={{ fontSize: '10px', color: '#9ca3af' }}>{direction} vote</div>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

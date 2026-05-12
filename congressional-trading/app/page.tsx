@@ -200,7 +200,7 @@ export default function Hero() {
                 )}
               </div>
             </div>
-            <h2 className="mb-3 text-center text-2xl font-black tracking-wide text-gray-800 sm:text-3xl">Trades by Ticker</h2>
+            <h2 className="mb-3 text-center text-2xl font-black tracking-wide text-gray-800 sm:text-3xl">Trades by Year</h2>
             <HomeTradeChartCard
               isLoading={isLoading}
               emptyMessage="No trades in current data"
