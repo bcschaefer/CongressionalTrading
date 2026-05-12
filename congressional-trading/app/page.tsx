@@ -114,7 +114,6 @@ export default function Hero() {
           if (cancelled) return;
           const trades: HomeTrade[] = Array.isArray(data.trades) ? data.trades : [];
           setRecentTrades(trades);
-          setSelectedBioguide(trades[0]?.bioguide ?? null);
           setIsLoading(false);
           return;
         } catch {
@@ -154,7 +153,10 @@ export default function Hero() {
   }
 
   useEffect(() => {
-    if (!selectedBioguide) return;
+    if (!selectedBioguide) {
+      setNetWorthHistory([]);
+      return;
+    }
     let cancelled = false;
     const timer = setTimeout(() => {
       setNetWorthLoading(true);
@@ -192,7 +194,7 @@ export default function Hero() {
                 Estimated Net Worth
               </h2>
               <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
-                <NetWorthLineChart data={netWorthHistory} isLoading={netWorthLoading || isLoading} onYearClick={handleYearClick} />
+                <NetWorthLineChart data={netWorthHistory} isLoading={netWorthLoading || isLoading} onYearClick={handleYearClick} emptyMessage="Hover a trader to see their net worth" />
                 {detailYear !== null && (
                   <NetWorthDetailPanel year={detailYear} data={detailData} loading={detailLoading} />
                 )}

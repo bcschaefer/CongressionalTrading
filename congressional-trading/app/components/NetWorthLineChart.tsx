@@ -20,10 +20,12 @@ export default function NetWorthLineChart({
   data,
   isLoading,
   onYearClick,
+  emptyMessage,
 }: {
   data: NetWorthHistoryPoint[];
   isLoading: boolean;
   onYearClick?: (year: number) => void;
+  emptyMessage?: string;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
 
@@ -166,7 +168,7 @@ export default function NetWorthLineChart({
   if (data.length === 0) {
     return (
       <div style={{ height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ fontSize: '14px', color: '#9ca3af' }}>No historical net worth data available.</p>
+        <p style={{ fontSize: '14px', color: '#9ca3af' }}>{emptyMessage ?? 'No historical net worth data available.'}</p>
       </div>
     );
   }

@@ -169,22 +169,77 @@ export default function CongressmanPage() {
   }, [bioguide]);
 
   useEffect(() => {
-    if ((activeTab !== 'voting' && activeTab !== 'conflicts') || votesLoaded || !bioguide) return;
+    if ((activeTab !== 'voting' && activeTab !== 'conflicts') || votesLoaded || !bioguide || !member) return;
     setVotesLoading(true);
-    fetch(`/api/congressman/${bioguide}/votes`)
-      .then((r) => r.json())
-      .then((data) => {
-        setVotes(data.votes ?? []);
-        if (data.error) setVotesError(data.error);
+
+    const lastName = member.full_name.trim().split(/\s+/).pop() ?? '';
+
+    async function fetchVotes() {
+      try {
+        // Fetch GovTrack client-side (CORS: access-control-allow-origin: *)
+        // Server-side fetches from Vercel are blocked by GovTrack's IP filtering
+        const personRes = await fetch(
+          `https://www.govtrack.us/api/v2/person?q=${encodeURIComponent(lastName)}&limit=50`
+        );
+        if (!personRes.ok) throw new Error('person lookup failed');
+
+        const personData = await personRes.json();
+        const match = (personData.objects ?? []).find(
+          (p: { bioguideid: string; link: string }) => p.bioguideid === bioguide
+        );
+
+        if (!match) {
+          setVotes([]);
+          setVotesLoading(false);
+          setVotesLoaded(true);
+          return;
+        }
+
+        const personId = Number(match.link.replace(/\/$/, '').split('/').pop());
+        if (!personId) throw new Error('invalid personId');
+
+        const votesRes = await fetch(
+          `https://www.govtrack.us/api/v2/vote_voter?person=${personId}&limit=150&sort=-id`
+        );
+        if (!votesRes.ok) throw new Error('votes fetch failed');
+
+        const votesData = await votesRes.json();
+        const rawVotes: Array<{
+          created: string;
+          option: { value: string };
+          vote: { question: string; question_details: string; chamber: string; result: string };
+        }> = votesData.objects ?? [];
+
+        // Deduplicate by bill description
+        const seen = new Set<string>();
+        const deduped: VoteRecord[] = rawVotes
+          .map((v) => ({
+            date: v.created,
+            question: v.vote.question,
+            description: v.vote.question_details,
+            memberVoted: v.option.value,
+            result: v.vote.result,
+            chamber: v.vote.chamber,
+          }))
+          .filter((v) => {
+            const key = (v.description?.trim() || v.question?.trim()) ?? '';
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+
+        setVotes(deduped);
         setVotesLoading(false);
         setVotesLoaded(true);
-      })
-      .catch(() => {
+      } catch {
         setVotesError('Failed to load voting history.');
         setVotesLoading(false);
         setVotesLoaded(true);
-      });
-  }, [activeTab, bioguide, votesLoaded]);
+      }
+    }
+
+    fetchVotes();
+  }, [activeTab, bioguide, votesLoaded, member]);
 
   const photoUrl = `/api/member-photo/${bioguide}`;
 

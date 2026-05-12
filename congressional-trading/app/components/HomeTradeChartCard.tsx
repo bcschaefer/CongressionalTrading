@@ -14,11 +14,12 @@ export default function HomeTradeChartCard({
   purchaseTrades,
   saleTrades,
 }: HomeTradeChartCardProps) {
+  const isEmpty = purchaseTrades.length === 0 && saleTrades.length === 0;
   return (
     <div className="bg-white p-4 rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-      {isLoading ? (
+      {isLoading || isEmpty ? (
         <div className="flex min-h-80 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-sm font-semibold text-gray-500">
-          Loading chart data...
+          {isLoading ? 'Loading chart data...' : 'Hover a trader to see their trades'}
         </div>
       ) : (
         <div style={{ width: '100%', overflowX: 'auto', overflowY: 'hidden' }}>

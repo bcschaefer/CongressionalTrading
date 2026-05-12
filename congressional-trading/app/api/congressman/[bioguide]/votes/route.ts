@@ -34,7 +34,7 @@ export async function GET(
   const { bioguide } = await params;
   const cacheKey = bioguide.toUpperCase();
 
-  const cached = await readLocalCache<{ votes: VoteRecord[] }>('member-votes-v2', cacheKey);
+  const cached = await readLocalCache<{ votes: VoteRecord[] }>('member-votes-v3', cacheKey);
   if (cached) {
     return NextResponse.json(cached);
   }
@@ -75,7 +75,7 @@ export async function GET(
 
     if (!personId) {
       // No GovTrack record for this member — cache to avoid repeated lookups
-      await writeLocalCache('member-votes-v2', cacheKey, { votes: [] }, 24 * 3_600);
+      await writeLocalCache('member-votes-v3', cacheKey, { votes: [] }, 24 * 3_600);
       return NextResponse.json({ votes: [] });
     }
 
@@ -92,17 +92,26 @@ export async function GET(
     const votesData = await votesRes.json();
     const rawVotes: GovTrackVoteVoter[] = votesData.objects ?? [];
 
-    const votes: VoteRecord[] = rawVotes.map((v) => ({
-      date: v.created,
-      question: v.vote.question,
-      description: v.vote.question_details,
-      memberVoted: v.option.value,
-      result: v.vote.result,
-      chamber: v.vote.chamber,
-    }));
+    // Deduplicate by bill description (question_details), keeping the most recent vote per bill
+    const seen = new Set<string>();
+    const votes: VoteRecord[] = rawVotes
+      .map((v) => ({
+        date: v.created,
+        question: v.vote.question,
+        description: v.vote.question_details,
+        memberVoted: v.option.value,
+        result: v.vote.result,
+        chamber: v.vote.chamber,
+      }))
+      .filter((v) => {
+        const key = v.description?.trim() || v.question?.trim();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
 
     const result = { votes };
-    await writeLocalCache('member-votes-v2', cacheKey, result, 12 * 3_600);
+    await writeLocalCache('member-votes-v3', cacheKey, result, 12 * 3_600);
     return NextResponse.json(result);
   } catch (err) {
     console.error('[votes]', err);
