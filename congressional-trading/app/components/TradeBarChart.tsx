@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import * as d3 from 'd3';
 
@@ -73,7 +73,7 @@ export default function TradeBarChart({
       .sort((a, b) => b.amount - a.amount);
   }, [groupByTicker, trades, groupedData]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!svgRef.current) return;
 
     // ── GROUPED MODE ─────────────────────────────────────────────────────────
