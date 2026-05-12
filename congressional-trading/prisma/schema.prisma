@@ -89,6 +89,7 @@ model members {
   committee_memberships committee_memberships[]
   disclosures           disclosures[]
   annual_disclosures    annual_financial_disclosures[]
+  net_worth_history     member_net_worth[]
 }
 
 model annual_financial_disclosures {
@@ -103,6 +104,10 @@ model annual_financial_disclosures {
   filing_year    Int
   filing_date    String?
   source_url     String?
+  total_assets        Float?
+  total_liabilities   Float?
+  net_worth           Float?
+  net_worth_parsed_at DateTime?
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 
@@ -151,4 +156,18 @@ model ptr_failed_docs {
   reason           String
   first_attempt_at DateTime @default(now())
   last_attempt_at  DateTime @updatedAt
+}
+
+model member_net_worth {
+  id         Int      @id @default(autoincrement())
+  bioguide   String
+  year       Int
+  net_worth  Float
+  doc_id     String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  members members @relation(fields: [bioguide], references: [bioguide], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([bioguide, year])
 }

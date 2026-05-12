@@ -10,6 +10,84 @@ const { Client: PgClient } = require('pg');
 
 const FINANCIAL_DISCLOSURE_PAGE = 'https://disclosures-clerk.house.gov/PublicDisclosure/FinancialDisclosure';
 const FINANCIAL_ZIP_URL = (year) => `https://disclosures-clerk.house.gov/public_disc/financial-pdfs/${year}FD.zip`;
+const FINANCIAL_PDF_URL = (year, docId) => `https://disclosures-clerk.house.gov/public_disc/financial-pdfs/${year}/${docId}.pdf`;
+
+// ---------- net worth PDF helpers ----------
+
+function _parseFullRange(str) {
+  const m = str.match(/\$([\d,]+)\s*-\s*\$([\d,]+)/);
+  if (!m) return null;
+  const low = Number(m[1].replace(/,/g, ''));
+  const high = Number(m[2].replace(/,/g, ''));
+  return { mid: (low + high) / 2 };
+}
+function _parseRangeStart(str) {
+  const m = str.match(/\$([\d,]+)\s*-\s*$/);
+  return m ? Number(m[1].replace(/,/g, '')) : null;
+}
+function _parseRangeEnd(str, low) {
+  const m = str.match(/^\$([\d,]+)/);
+  if (!m) return null;
+  return { mid: (low + Number(m[1].replace(/,/g, ''))) / 2 };
+}
+
+async function parsePdfNetWorth(docId, filingYear) {
+  try {
+    const pdfParseModule = require('pdf-parse/lib/pdf-parse.js');
+    const parsePdf = pdfParseModule.default ?? pdfParseModule;
+    const pdfUrl = FINANCIAL_PDF_URL(filingYear, docId);
+    const response = await fetch(pdfUrl, { signal: AbortSignal.timeout(20_000) });
+    if (!response.ok) return null;
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const result = await parsePdf(buffer);
+    const text = result?.text ?? '';
+
+    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    const assets = [];
+    const liabilities = [];
+    let sec = 'none';
+    let pendingAsset = false;
+    let pendingLow = null;
+    let pendingLiabLow = null;
+
+    const emitAsset = (v) => { assets.push(v.mid); pendingAsset = false; pendingLow = null; };
+
+    for (const line of lines) {
+      if (line.includes('Value of Asset') && line.includes('Owner')) { sec = 'a'; pendingAsset = false; pendingLow = null; continue; }
+      if (line.includes('Creditor') && line.includes('Date Incurred')) { sec = 'd'; pendingLiabLow = null; continue; }
+      if (line.startsWith('https://') || line.startsWith('* Asset')) continue;
+      if (/^--\s*\d+\s*of\s*\d+\s*--$/.test(line)) continue;
+
+      if (sec === 'a') {
+        if (/\[[A-Z]{2,4}\]/.test(line)) {
+          pendingAsset = false; pendingLow = null;
+          const full = _parseFullRange(line);
+          if (full) { emitAsset(full); } else { const low = _parseRangeStart(line); pendingAsset = true; if (low !== null) pendingLow = low; }
+        } else if (pendingAsset) {
+          if (pendingLow !== null) { const c = _parseRangeEnd(line, pendingLow); if (c) emitAsset(c); }
+          else { const full = _parseFullRange(line); if (full) { emitAsset(full); } else { const low = _parseRangeStart(line); if (low !== null) pendingLow = low; } }
+        }
+      }
+      if (sec === 'd') {
+        if (pendingLiabLow !== null) {
+          const m = line.match(/^\$([\d,]+)/);
+          if (m) { liabilities.push((pendingLiabLow + Number(m[1].replace(/,/g, ''))) / 2); pendingLiabLow = null; continue; }
+        }
+        if (/^(JT|SP|DC|Self)\b/.test(line)) {
+          const full = _parseFullRange(line);
+          if (full) { liabilities.push(full.mid); } else { const low = _parseRangeStart(line); if (low !== null) pendingLiabLow = low; }
+        }
+      }
+    }
+
+    const totalAssets = assets.reduce((s, v) => s + v, 0);
+    const totalLiabilities = liabilities.reduce((s, v) => s + v, 0);
+    if (totalAssets === 0 && totalLiabilities === 0) return null;
+    return { totalAssets, totalLiabilities, netWorth: totalAssets - totalLiabilities };
+  } catch {
+    return null;
+  }
+}
 
 function parseArgs(argv) {
   const years = new Set();
@@ -363,6 +441,10 @@ async function run() {
 
       for (const filing of filings) {
         const bioguide = resolveBioguide(filing, normalizedMembers);
+        const existing = await prisma.annual_financial_disclosures.findUnique({
+          where: { doc_id: filing.docId },
+          select: { net_worth_parsed_at: true },
+        });
         await prisma.annual_financial_disclosures.upsert({
           where: { doc_id: filing.docId },
           update: {
@@ -390,6 +472,23 @@ async function run() {
           },
         });
         docsUpserted += 1;
+
+        // Parse net worth for new disclosures (not yet cached)
+        if (!existing || !existing.net_worth_parsed_at) {
+          const parsed = await parsePdfNetWorth(filing.docId, filing.year);
+          if (parsed) {
+            await prisma.annual_financial_disclosures.update({
+              where: { doc_id: filing.docId },
+              data: {
+                total_assets: parsed.totalAssets,
+                total_liabilities: parsed.totalLiabilities,
+                net_worth: parsed.netWorth,
+                net_worth_parsed_at: new Date(),
+              },
+            });
+            console.log(`  [net-worth] ${filing.docId} net=$${Math.round(parsed.netWorth / 1000)}k`);
+          }
+        }
       }
     }
 

@@ -38,7 +38,7 @@ export default function ProlificTradersTable({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden" style={{ maxHeight: '928px', overflowY: 'auto' }}>
+    <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden" style={{ maxHeight: '760px', overflowY: 'auto' }}>
       <div className="divide-y divide-gray-200 md:hidden">
         {groups.map((group, index) => (
           <button
@@ -58,8 +58,12 @@ export default function ProlificTradersTable({
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-400 font-semibold">#{index + 1}</span>
               <span className="text-sm font-semibold text-blue-700">{group.congressman}</span>
-              {group.chamber === 'senate' && (
-                <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700">SEN</span>
+              {group.chamber && (
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                  group.chamber.toLowerCase() === 'senate'
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-blue-100 text-blue-700'
+                }`}>{group.chamber.toLowerCase() === 'senate' ? 'Sen' : 'Rep'}</span>
               )}
             </div>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
@@ -111,8 +115,12 @@ export default function ProlificTradersTable({
                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center sm:px-6 sm:py-6">
                   <div className="flex items-center justify-center gap-2">
                     <span className="font-semibold text-blue-700">{group.congressman}</span>
-                    {group.chamber === 'senate' && (
-                      <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700">SEN</span>
+                    {group.chamber && (
+                      <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                        group.chamber.toLowerCase() === 'senate'
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>{group.chamber.toLowerCase() === 'senate' ? 'Sen' : 'Rep'}</span>
                     )}
                   </div>
                 </td>

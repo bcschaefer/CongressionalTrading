@@ -6,6 +6,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import TradeBarChart from '@/app/components/TradeBarChart';
 import NetWorthSection, { type NetWorthData } from '@/app/components/NetWorthSection';
+import NetWorthLineChart, { type NetWorthHistoryPoint } from '@/app/components/NetWorthLineChart';
+import VotingHistoryTable, { type VoteRecord } from '@/app/components/VotingHistoryTable';
+import PotentialConflictsTable from '@/app/components/PotentialConflictsTable';
+import type { MemberTrade as ConflictMemberTrade } from '@/app/components/PotentialConflictsTable';
 import type { AnnualDisclosureItem } from '../../components/StockDisclosuresMenu';
 
 type MemberTrade = {
@@ -81,6 +85,13 @@ export default function CongressmanPage() {
   const [netWorth, setNetWorth] = useState<NetWorthData | null>(null);
   const [annualDisclosures, setAnnualDisclosures] = useState<AnnualDisclosureItem[]>([]);
   const [failedImageBioguide, setFailedImageBioguide] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'trades' | 'voting' | 'conflicts'>('trades');
+  const [netWorthHistory, setNetWorthHistory] = useState<NetWorthHistoryPoint[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [votes, setVotes] = useState<VoteRecord[]>([]);
+  const [votesLoading, setVotesLoading] = useState(false);
+  const [votesLoaded, setVotesLoaded] = useState(false);
+  const [votesError, setVotesError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!bioguide) return;
@@ -126,6 +137,35 @@ export default function CongressmanPage() {
       });
   }, [bioguide, loading]);
 
+  useEffect(() => {
+    if (!bioguide) return;
+    fetch(`/api/congressman/${bioguide}/net-worth-history`)
+      .then((r) => r.json())
+      .then((data) => {
+        setNetWorthHistory(data.history ?? []);
+        setHistoryLoading(false);
+      })
+      .catch(() => setHistoryLoading(false));
+  }, [bioguide]);
+
+  useEffect(() => {
+    if ((activeTab !== 'voting' && activeTab !== 'conflicts') || votesLoaded || !bioguide) return;
+    setVotesLoading(true);
+    fetch(`/api/congressman/${bioguide}/votes`)
+      .then((r) => r.json())
+      .then((data) => {
+        setVotes(data.votes ?? []);
+        if (data.error) setVotesError(data.error);
+        setVotesLoading(false);
+        setVotesLoaded(true);
+      })
+      .catch(() => {
+        setVotesError('Failed to load voting history.');
+        setVotesLoading(false);
+        setVotesLoaded(true);
+      });
+  }, [activeTab, bioguide, votesLoaded]);
+
   const photoUrl = `/api/member-photo/${bioguide}`;
 
   const totalPurchases = purchaseTrades.reduce((s, t) => s + t.amount, 0);
@@ -144,35 +184,20 @@ export default function CongressmanPage() {
 
   const tradeCharts = useMemo(
     () => (
-      <>
-        <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 overflow-hidden">
-          <h2 style={{ marginTop: '12px', marginBottom: '14px', textAlign: 'center', fontSize: 'clamp(1.9rem, 8vw, 3rem)', fontWeight: 800, lineHeight: 1.05, color: '#065f46' }}>
-            Purchases
-          </h2>
-          <div className="w-full overflow-x-auto overflow-y-hidden">
-            <TradeBarChart
-              trades={purchaseTrades}
-              color="#10b981"
-              emptyMessage="No purchase trades on record"
-              groupByTicker={true}
-            />
-          </div>
+      <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 overflow-hidden">
+        <h2 style={{ marginTop: '12px', marginBottom: '14px', textAlign: 'center', fontSize: 'clamp(1.9rem, 8vw, 3rem)', fontWeight: 800, lineHeight: 1.05, color: '#1f2937' }}>
+          Trades by Ticker
+        </h2>
+        <div className="w-full overflow-x-auto overflow-y-hidden">
+          <TradeBarChart
+            trades={purchaseTrades}
+            saleTrades={saleTrades}
+            color="#10b981"
+            emptyMessage="No trades on record"
+            groupByTicker={true}
+          />
         </div>
-
-        <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 overflow-hidden">
-          <h2 style={{ marginTop: '12px', marginBottom: '14px', textAlign: 'center', fontSize: 'clamp(1.9rem, 8vw, 3rem)', fontWeight: 800, lineHeight: 1.05, color: '#9f1239' }}>
-            Sales
-          </h2>
-          <div className="w-full overflow-x-auto overflow-y-hidden">
-            <TradeBarChart
-              trades={saleTrades}
-              color="#ef4444"
-              emptyMessage="No sale trades on record"
-              groupByTicker={true}
-            />
-          </div>
-        </div>
-      </>
+      </div>
     ),
     [purchaseTrades, saleTrades]
   );
@@ -310,10 +335,86 @@ export default function CongressmanPage() {
       </div>
 
       {/* Graphs */}
-      <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 space-y-8 md:px-10 md:pb-14 md:pt-8" style={{ marginTop: '24px' }}>
-        {tradeCharts}
+      <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 md:px-10 md:pb-14 md:pt-8" style={{ marginTop: '24px' }}>
 
-        <NetWorthSection netWorth={netWorth} disclosures={disclosuresSorted} />
+        {/* Net Worth Over Time */}
+        <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 mb-8 overflow-hidden">
+          <h2
+            style={{
+              marginTop: '8px',
+              marginBottom: '6px',
+              textAlign: 'center',
+              fontSize: 'clamp(1.4rem, 5vw, 2rem)',
+              fontWeight: 800,
+              color: '#1e3a8a',
+            }}
+          >
+            Net Worth Over Time
+          </h2>
+          <p style={{ textAlign: 'center', fontSize: '13px', color: '#9ca3af', marginBottom: '16px' }}>
+            Estimated from annual financial disclosures
+          </p>
+          <NetWorthLineChart data={netWorthHistory} isLoading={historyLoading} />
+        </div>
+
+        {/* Tab Navigation */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '28px',
+            borderBottom: '2px solid #e5e7eb',
+            paddingBottom: '0',
+          }}
+        >
+          {(['trades', 'voting', 'conflicts'] as const).map((tab) => {
+            const labels: Record<typeof tab, string> = {
+              trades: 'Trades',
+              voting: 'Voting History',
+              conflicts: 'Potential Conflicts',
+            };
+            const active = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  padding: '10px 22px',
+                  fontSize: '14px',
+                  fontWeight: active ? 700 : 500,
+                  color: active ? '#1d4ed8' : '#6b7280',
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: active ? '3px solid #1d4ed8' : '3px solid transparent',
+                  marginBottom: '-2px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  borderRadius: '0',
+                }}
+              >
+                {labels[tab]}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'trades' ? (
+          <div className="space-y-8">
+            {tradeCharts}
+            <NetWorthSection netWorth={netWorth} disclosures={disclosuresSorted} />
+          </div>
+        ) : activeTab === 'voting' ? (
+          <VotingHistoryTable votes={votes} isLoading={votesLoading} error={votesError} />
+        ) : (
+          <PotentialConflictsTable
+            trades={trades as ConflictMemberTrade[]}
+            votes={votes}
+            isLoading={votesLoading}
+            error={votesError}
+          />
+        )}
       </div>
     </div>
   );

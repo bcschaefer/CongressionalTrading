@@ -2,61 +2,35 @@ import TradeBarChart from './TradeBarChart';
 import type { HomeTrade } from '@/lib/home-trades';
 
 type HomeTradeChartCardProps = {
-  title: string;
-  titleTextColor: string;
-  titleBorderColor: string;
-  titleBackgroundColor: string;
-  chartColor: string;
   isLoading: boolean;
   emptyMessage: string;
-  trades: HomeTrade[];
+  purchaseTrades: HomeTrade[];
+  saleTrades: HomeTrade[];
 };
 
 export default function HomeTradeChartCard({
-  title,
-  titleTextColor,
-  titleBorderColor,
-  titleBackgroundColor,
-  chartColor,
   isLoading,
   emptyMessage,
-  trades,
+  purchaseTrades,
+  saleTrades,
 }: HomeTradeChartCardProps) {
   return (
-    <div>
-      <h3
-        style={{
-          marginTop: '1rem',
-          borderRadius: '0.75rem',
-          border: `1px solid ${titleBorderColor}`,
-          backgroundColor: titleBackgroundColor,
-          padding: '0.75rem 1rem',
-          textAlign: 'center',
-          fontSize: '1.5rem',
-          fontWeight: 900,
-          letterSpacing: '0.025em',
-          color: titleTextColor,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-        }}
-      >
-        {title}
-      </h3>
-      <div className="bg-white p-4 rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-        {isLoading ? (
-          <div className="flex min-h-80 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-sm font-semibold text-gray-500">
-            Loading chart data...
-          </div>
-        ) : (
-          <div style={{ width: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
-            <TradeBarChart
-              trades={trades}
-              color={chartColor}
-              emptyMessage={emptyMessage}
-              groupByTicker={true}
-            />
-          </div>
-        )}
-      </div>
+    <div className="bg-white p-4 rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+      {isLoading ? (
+        <div className="flex min-h-80 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-sm font-semibold text-gray-500">
+          Loading chart data...
+        </div>
+      ) : (
+        <div style={{ width: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
+          <TradeBarChart
+            trades={purchaseTrades}
+            saleTrades={saleTrades}
+            color="#10b981"
+            emptyMessage={emptyMessage}
+            groupByTicker={true}
+          />
+        </div>
+      )}
     </div>
   );
 }

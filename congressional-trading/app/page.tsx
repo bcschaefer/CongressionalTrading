@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import HomeTradeChartCard from './components/HomeTradeChartCard';
 import ProlificTradersTable from './components/ProlificTradersTable';
+import NetWorthLineChart, { type NetWorthHistoryPoint } from './components/NetWorthLineChart';
 import {
   getTradeDirection,
   groupTradesByCongressman,
@@ -15,6 +16,12 @@ export default function Hero() {
   const [recentTrades, setRecentTrades] = useState<HomeTrade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBioguide, setSelectedBioguide] = useState<string | null>(null);
+  const [netWorthHistory, setNetWorthHistory] = useState<NetWorthHistoryPoint[]>([]);
+  const [netWorthLoading, setNetWorthLoading] = useState(false);
+  const [netWorthBioguide, setNetWorthBioguide] = useState<string | null>(null);
+  const [detailYear, setDetailYear] = useState<number | null>(null);
+  const [detailData, setDetailData] = useState<{ totalAssets: number; totalLiabilities: number; netWorth: number } | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +73,46 @@ export default function Hero() {
 
   const groupedCongressmen = useMemo(() => groupTradesByCongressman(recentTrades), [recentTrades]);
 
+  // Reset detail panel when member changes
+  useEffect(() => {
+    setDetailYear(null);
+    setDetailData(null);
+  }, [selectedBioguide]);
+
+  function handleYearClick(year: number) {
+    if (!selectedBioguide) return;
+    setDetailYear(year);
+    setDetailData(null);
+    setDetailLoading(true);
+    fetch(`/api/congressman/${selectedBioguide}/net-worth-detail/${year}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setDetailData(data.error ? null : { totalAssets: data.totalAssets, totalLiabilities: data.totalLiabilities, netWorth: data.netWorth });
+        setDetailLoading(false);
+      })
+      .catch(() => setDetailLoading(false));
+  }
+
+  // Fetch net worth history whenever selected member changes, with debounce
+  useEffect(() => {
+    if (!selectedBioguide) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setNetWorthLoading(true);
+      fetch(`/api/congressman/${selectedBioguide}/net-worth-history`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (!cancelled) {
+            setNetWorthHistory(data.history ?? []);
+            setNetWorthBioguide(selectedBioguide);
+            setNetWorthLoading(false);
+          }
+        })
+        .catch(() => { if (!cancelled) { setNetWorthHistory([]); setNetWorthLoading(false); } });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [selectedBioguide]);
+
   const selectedGroup = useMemo(
     () => groupedCongressmen.find((group) => group.bioguide === selectedBioguide) ?? null,
     [groupedCongressmen, selectedBioguide]
@@ -99,7 +146,7 @@ export default function Hero() {
             </span>
           </h1>
           <p className="mt-4 text-lg text-white/75 font-medium max-w-xl mx-auto">
-            We track every disclosed congressional trade — so you can see exactly what they&rsquo;re buying and selling while making the laws.
+            We track every disclosed congressional trade, so you can see exactly what influences their laws.
           </p>
           <div className="mt-6 flex justify-center gap-3 flex-wrap">
             <a
@@ -140,29 +187,36 @@ export default function Hero() {
         <div className="mx-auto flex max-w-400 flex-col items-stretch gap-8 lg:flex-row">
         <div className="hidden w-full min-w-0 md:block lg:w-1/2">
           <div className="mb-6">
-            <HomeTradeChartCard
-              title="Purchases"
-              titleTextColor="#15803d"
-              titleBorderColor="#bbf7d0"
-              titleBackgroundColor="#dcfce7"
-              chartColor="#10b981"
-              isLoading={isLoading}
-              emptyMessage="No purchase trades in current data"
-              trades={purchaseTrades}
-            />
+            <h2 className="mb-3 text-center text-2xl font-black tracking-wide text-gray-800 sm:text-3xl">
+              Estimated Net Worth
+            </h2>
+            <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-4">
+              <NetWorthLineChart data={netWorthHistory} isLoading={netWorthLoading || isLoading} onYearClick={handleYearClick} />
+              {detailYear !== null && (
+                <div style={{ marginTop: '12px', padding: '12px 16px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', fontSize: '13px' }}>
+                  <div style={{ fontWeight: 700, color: '#0369a1', marginBottom: '6px' }}>{detailYear} Breakdown</div>
+                  {detailLoading ? (
+                    <div style={{ color: '#6b7280' }}>Parsing PDF…</div>
+                  ) : detailData ? (
+                    <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                      <span>Assets: <b style={{ color: '#15803d' }}>${(detailData.totalAssets / 1_000_000).toFixed(2)}M</b></span>
+                      <span>Liabilities: <b style={{ color: '#dc2626' }}>${(detailData.totalLiabilities / 1_000_000).toFixed(2)}M</b></span>
+                      <span>Net Worth: <b style={{ color: '#1d4ed8' }}>${(detailData.netWorth / 1_000_000).toFixed(2)}M</b></span>
+                    </div>
+                  ) : (
+                    <div style={{ color: '#9ca3af' }}>No breakdown available for this year.</div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-          <div>
-            <HomeTradeChartCard
-              title="Sales"
-              titleTextColor="#b91c1c"
-              titleBorderColor="#fecaca"
-              titleBackgroundColor="#fee2e2"
-              chartColor="#ef4444"
-              isLoading={isLoading}
-              emptyMessage="No sale trades in current data"
-              trades={saleTrades}
-            />
-          </div>
+          <h2 className="mb-3 text-center text-2xl font-black tracking-wide text-gray-800 sm:text-3xl">Trades by Ticker</h2>
+          <HomeTradeChartCard
+            isLoading={isLoading}
+            emptyMessage="No trades in current data"
+            purchaseTrades={purchaseTrades}
+            saleTrades={saleTrades}
+          />
         </div>
 
         <div className="w-full min-w-0 lg:w-1/2">

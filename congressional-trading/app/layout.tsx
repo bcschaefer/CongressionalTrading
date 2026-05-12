@@ -34,6 +34,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NavBar />
+        <div style={{ background: '#fefce8', borderBottom: '1px solid #fde68a', padding: '8px 16px' }}>
+          <p className="mx-auto max-w-5xl text-center text-xs text-yellow-800 font-medium">
+            ⚠️ Senate disclosure data is currently incomplete — the Senate&apos;s eFD system has been experiencing intermittent outages affecting data retrieval. House data is fully up to date.
+          </p>
+        </div>
         <main>{children}</main>
         <footer style={{ background: 'rgba(15,23,42,0.97)', borderTop: '1px solid rgba(255,255,255,0.07)', padding: '28px 24px' }}>
           <div className="mx-auto max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
