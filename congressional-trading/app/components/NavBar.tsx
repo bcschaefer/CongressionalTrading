@@ -12,11 +12,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/', label: 'Home', isActive: (pathname) => pathname === '/' },
-  {
-    href: '/representatives',
-    label: 'Representatives',
-    isActive: (pathname) => pathname.startsWith('/representatives') || pathname.startsWith('/congressman'),
-  },
+  { href: '/representatives', label: 'Members', isActive: (pathname) => pathname.startsWith('/representatives') || pathname.startsWith('/congressman') },
   { href: '/stocks', label: 'Stocks', isActive: (pathname) => pathname.startsWith('/stocks') },
 ];
 
@@ -105,6 +101,10 @@ export default function NavBar() {
     router.push(href);
   };
 
+  const prefetchOnHover = (href: string) => {
+    router.prefetch(href);
+  };
+
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (results.length === 0) return;
@@ -143,6 +143,7 @@ export default function NavBar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onMouseEnter={() => prefetchOnHover(item.href)}
                   className={`site-nav-pill ${active ? 'site-nav-pill-active' : ''}`}
                 >
                   {item.label}
@@ -155,7 +156,7 @@ export default function NavBar() {
               rel="noreferrer"
               className="site-nav-pill site-nav-pill-report"
             >
-              Report
+              View Report
             </a>
           </div>
 
@@ -196,7 +197,10 @@ export default function NavBar() {
                       key={`${result.type}-${result.href}-${index}`}
                       type="button"
                       className={`site-nav-search-item ${index === activeIndex ? 'site-nav-search-item-active' : ''}`}
-                      onMouseEnter={() => setActiveIndex(index)}
+                      onMouseEnter={() => {
+                        setActiveIndex(index);
+                        prefetchOnHover(result.href);
+                      }}
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => navigateTo(result.href)}
                       role="option"
@@ -213,10 +217,6 @@ export default function NavBar() {
             </div>
           )}
         </div>
-
-          <Link href="/" className="site-nav-brand" aria-label="Go to Home">
-          InsideTrader
-        </Link>
 
           <div className="site-nav-social">
             <a
@@ -251,6 +251,10 @@ export default function NavBar() {
               </svg>
             </a>
           </div>
+
+          <Link href="/" className="site-nav-brand" aria-label="Go to Home" onMouseEnter={() => prefetchOnHover('/')}>
+          InsideTrader
+        </Link>
       </nav>
     </header>
 
@@ -294,6 +298,8 @@ export default function NavBar() {
           align-items: center;
           gap: 8px;
           flex-shrink: 0;
+          order: 3;
+          margin-left: auto;
         }
 
         .site-nav-social-btn {
@@ -330,7 +336,7 @@ export default function NavBar() {
         .site-nav-search-form {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 0;
         }
 
         .site-nav-search-input {
@@ -370,6 +376,7 @@ export default function NavBar() {
           border-radius: 9999px;
           width: 40px;
           height: 40px;
+          margin-left: 0;
           padding: 0;
           cursor: pointer;
           transition: background-color 0.2s ease, border-color 0.2s ease;
@@ -564,7 +571,7 @@ export default function NavBar() {
           .site-nav-links {
             width: 100%;
             justify-content: center;
-            order: 2;
+            order: 3;
           }
 
           .site-nav-pill {
@@ -575,8 +582,9 @@ export default function NavBar() {
           .site-nav-brand {
             order: 1;
             margin-left: 0;
-            width: 100%;
-            text-align: center;
+            margin-right: 0;
+            width: auto;
+            text-align: left;
             font-size: 24px;
           }
 
@@ -585,9 +593,8 @@ export default function NavBar() {
           }
 
           .site-nav-social {
-            order: 3;
-            margin-left: 6px;
-            margin-right: 0;
+            order: 2;
+            margin-left: auto;
             gap: 6px;
           }
 
@@ -602,7 +609,7 @@ export default function NavBar() {
           }
 
           .site-nav-search-form {
-            gap: 4px;
+            gap: 0;
           }
 
           .site-nav-search-input {
@@ -613,6 +620,7 @@ export default function NavBar() {
           .site-nav-search-btn {
             width: 34px;
             height: 34px;
+            margin-left: 0;
           }
 
           .site-nav-search-btn-icon {

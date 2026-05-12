@@ -6,6 +6,7 @@ type ProlificTradersTableProps = {
   isLoading: boolean;
   selectedBioguide: string | null;
   onHoverRow: (bioguide: string) => void;
+  onPrefetchMember: (bioguide: string) => void;
   onOpenMember: (bioguide: string) => void;
 };
 
@@ -14,6 +15,7 @@ export default function ProlificTradersTable({
   isLoading,
   selectedBioguide,
   onHoverRow,
+  onPrefetchMember,
   onOpenMember,
 }: ProlificTradersTableProps) {
   if (isLoading) {
@@ -42,12 +44,24 @@ export default function ProlificTradersTable({
           <button
             key={group.bioguide}
             className={`w-full text-left px-4 py-3 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${selectedBioguide === group.bioguide ? 'bg-blue-100' : ''} hover:bg-blue-50`}
-            onMouseEnter={() => onHoverRow(group.bioguide)}
-            onFocus={() => onHoverRow(group.bioguide)}
+            onMouseEnter={() => {
+              onHoverRow(group.bioguide);
+              onPrefetchMember(group.bioguide);
+            }}
+            onFocus={() => {
+              onHoverRow(group.bioguide);
+              onPrefetchMember(group.bioguide);
+            }}
             onClick={() => onOpenMember(group.bioguide)}
             type="button"
           >
-            <div className="text-sm font-semibold text-blue-700">{group.congressman}</div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400 font-semibold">#{index + 1}</span>
+              <span className="text-sm font-semibold text-blue-700">{group.congressman}</span>
+              {group.chamber === 'senate' && (
+                <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700">SEN</span>
+              )}
+            </div>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
               <span>{formatDate(group.latestDate)}</span>
               <span>{getTradeCountLabel(group.trades.length)}</span>
@@ -61,6 +75,7 @@ export default function ProlificTradersTable({
         <table className="w-full min-w-170">
           <thead className="bg-linear-to-r from-gray-100 to-gray-200">
             <tr>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-6 sm:py-4">#</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-6 sm:py-4">Congressman</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-6 sm:py-4">Recent Date</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-6 sm:py-4">Trades</th>
@@ -72,8 +87,14 @@ export default function ProlificTradersTable({
               <tr
                 key={group.bioguide}
                 className={`cursor-pointer transition-all duration-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${selectedBioguide === group.bioguide ? 'bg-blue-100' : ''} hover:bg-blue-50 hover:shadow-md`}
-                onMouseEnter={() => onHoverRow(group.bioguide)}
-                onFocus={() => onHoverRow(group.bioguide)}
+                onMouseEnter={() => {
+                  onHoverRow(group.bioguide);
+                  onPrefetchMember(group.bioguide);
+                }}
+                onFocus={() => {
+                  onHoverRow(group.bioguide);
+                  onPrefetchMember(group.bioguide);
+                }}
                 onClick={() => onOpenMember(group.bioguide)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
@@ -84,8 +105,16 @@ export default function ProlificTradersTable({
                 tabIndex={0}
                 role="link"
               >
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-center sm:px-6 sm:py-6">
+                  <span className="text-xs font-semibold text-gray-400">#{index + 1}</span>
+                </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center sm:px-6 sm:py-6">
-                  <span className="font-semibold text-blue-700">{group.congressman}</span>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="font-semibold text-blue-700">{group.congressman}</span>
+                    {group.chamber === 'senate' && (
+                      <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700">SEN</span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center sm:px-6 sm:py-6">{formatDate(group.latestDate)}</td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center sm:px-6 sm:py-6">{getTradeCountLabel(group.trades.length)}</td>

@@ -5,6 +5,7 @@ type TradeResponse = {
   id: number;
   bioguide: string;
   congressman: string;
+  chamber: string | null;
   type: string;
   amount: number;
   ticker: string;
@@ -59,6 +60,7 @@ export async function GET() {
             id: row.id,
             bioguide: row.bioguide,
             congressman: row.members.full_name,
+            chamber: row.members.chamber ?? null,
             type: (row.transaction_type ?? 'UNKNOWN').toUpperCase(),
             amount: parseAmountRange(row.amount_range),
             ticker: row.ticker ?? 'N/A',
@@ -72,6 +74,7 @@ export async function GET() {
         id: trade.id,
         bioguide: row.bioguide,
         congressman: row.members.full_name,
+        chamber: row.members.chamber ?? null,
         type: (trade.trade_type ?? row.transaction_type ?? 'UNKNOWN').toUpperCase(),
         amount: trade.amount ?? parseAmountRange(row.amount_range),
         ticker: trade.ticker ?? row.ticker ?? 'N/A',

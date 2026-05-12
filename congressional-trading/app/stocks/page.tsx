@@ -83,8 +83,11 @@ export default function StocksPage() {
           </Link>
           <div className="flex items-end justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Stocks</h1>
-              <p className="mt-1 text-white/60 text-sm">
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">The Congressional Watchlist</h1>
+              <p className="mt-2 text-white/75 text-base max-w-xl">
+                These are the stocks Congress is buying and selling. Coincidence or conviction? You decide.
+              </p>
+              <p className="mt-1 text-white/50 text-sm">
                 {loading ? '…' : `${stocks.length} tickers traded by Congress`}
               </p>
             </div>
@@ -144,6 +147,8 @@ export default function StocksPage() {
                   return (
                     <button
                       key={s.ticker}
+                      onMouseEnter={() => router.prefetch(`/stocks/${s.ticker}`)}
+                      onFocus={() => router.prefetch(`/stocks/${s.ticker}`)}
                       onClick={() => router.push(`/stocks/${s.ticker}`)}
                       className="w-full text-left hover:bg-teal-50 transition-colors cursor-pointer"
                       style={{ display: 'block', padding: '12px 20px' }}

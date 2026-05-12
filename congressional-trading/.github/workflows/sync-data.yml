@@ -1,0 +1,229 @@
+name: Sync Congressional Trade Data
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC (2 AM ET / 11 PM PT)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      sync_house_ptr:
+        description: 'Sync House PTR disclosures'
+        type: boolean
+        default: true
+      sync_house_annual:
+        description: 'Sync House annual disclosures'
+        type: boolean
+        default: true
+      sync_senate_ptr:
+        description: 'Sync Senate PTR disclosures'
+        type: boolean
+        default: true
+      sync_senate_annual:
+        description: 'Sync Senate annual disclosures'
+        type: boolean
+        default: true
+      year:
+        description: 'Specific year to sync (leave blank for current year)'
+        type: string
+        default: ''
+
+jobs:
+  sync-house-ptr:
+    name: House PTR Disclosures
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || inputs.sync_house_ptr }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync House PTR
+        run: |
+          YEAR="${{ inputs.year }}"
+          if [ -n "$YEAR" ]; then
+            node scripts/sync-house-ptr.js --year="$YEAR"
+          else
+            node scripts/sync-house-ptr.js
+          fi
+        env:
+          TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+
+  sync-house-annual:
+    name: House Annual Disclosures
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || inputs.sync_house_annual }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync House Annual
+        run: |
+          YEAR="${{ inputs.year }}"
+          if [ -n "$YEAR" ]; then
+            node scripts/sync-house-annual.js --year="$YEAR"
+          else
+            node scripts/sync-house-annual.js
+          fi
+        env:
+          TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+
+  sync-senate-ptr:
+    name: Senate PTR Disclosures
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || inputs.sync_senate_ptr }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync Senate PTR
+        # Continue on error — eFD site is intermittently in maintenance mode
+        continue-on-error: true
+        run: |
+          TODAY=$(date -u +%m/%d/%Y)
+          THIRTY_DAYS_AGO=$(date -u -d '30 days ago' +%m/%d/%Y 2>/dev/null || date -u -v-30d +%m/%d/%Y)
+          node scripts/sync-senate-ptr.js --start-date="$THIRTY_DAYS_AGO" --end-date="$TODAY" --no-resume
+        env:
+          TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+
+  sync-senate-annual:
+    name: Senate Annual Disclosures
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || inputs.sync_senate_annual }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync Senate Annual
+        continue-on-error: true
+        run: node scripts/sync-senate-annual.js
+        env:
+          TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+
+        run: |
+          YEAR="${{ inputs.year }}"
+          if [ -n "$YEAR" ]; then
+            node scripts/sync-house-ptr.js --year="$YEAR"
+          else
+            node scripts/sync-house-ptr.js
+          fi
+        env:
+          TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+
+  sync-house-annual:
+    name: House Annual Disclosures
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || inputs.sync_house_annual }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync House Annual
+        run: |
+          YEAR="${{ inputs.year }}"
+          if [ -n "$YEAR" ]; then
+            node scripts/sync-house-annual.js --year="$YEAR"
+          else
+            node scripts/sync-house-annual.js
+          fi
+        env:
+          TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+
+  sync-senate-ptr:
+    name: Senate PTR Disclosures
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || inputs.sync_senate_ptr }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync Senate PTR
+        # Continue on error — eFD site is intermittently in maintenance mode
+        continue-on-error: true
+        run: |
+          TODAY=$(date -u +%m/%d/%Y)
+          THIRTY_DAYS_AGO=$(date -u -d '30 days ago' +%m/%d/%Y 2>/dev/null || date -u -v-30d +%m/%d/%Y)
+          node scripts/sync-senate-ptr.js --start-date="$THIRTY_DAYS_AGO" --end-date="$TODAY" --no-resume
+        env:
+          TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+
+  sync-senate-annual:
+    name: Senate Annual Disclosures
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || inputs.sync_senate_annual }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync Senate Annual
+        continue-on-error: true
+        run: node scripts/sync-senate-annual.js
+        env:
+          TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
+          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}

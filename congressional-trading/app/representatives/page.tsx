@@ -109,10 +109,13 @@ export default function RepresentativesPage() {
           </Link>
           <div className="flex items-end justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Representatives</h1>
-              <p className="mt-1 text-white/60 text-sm">
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Members of Congress</h1>
+              <p className="mt-2 text-white/75 text-base max-w-xl">
+                Every member of Congress — Representatives and Senators — must disclose their stock trades. We make it easy to see who&rsquo;s betting big.
+              </p>
+              <p className="mt-1 text-white/50 text-sm">
                 {loading ? '…' : isSearching
-                  ? `Searching all ${members.length} members with trade disclosures`
+                  ? `Searching all ${members.length} members with trade disclosures since 2012`
                   : `${activeCount} currently active members`}
               </p>
             </div>
@@ -176,6 +179,8 @@ export default function RepresentativesPage() {
                   return (
                     <button
                       key={m.bioguide}
+                      onMouseEnter={() => router.prefetch(`/congressman/${m.bioguide}`)}
+                      onFocus={() => router.prefetch(`/congressman/${m.bioguide}`)}
                       onClick={() => router.push(`/congressman/${m.bioguide}`)}
                       className="w-full text-left hover:bg-blue-50 transition-colors cursor-pointer"
                       style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', flexWrap: 'wrap' }}
@@ -193,6 +198,9 @@ export default function RepresentativesPage() {
                         {m.full_name}
                       </span>
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', width: '100%' }} className="sm:w-auto">
+                        {m.chamber === 'senate' && (
+                          <span style={{ fontSize: '11px', fontWeight: 700, background: '#ede9fe', color: '#6d28d9', padding: '2px 8px', borderRadius: '9999px' }}>Senator</span>
+                        )}
                         {m.party && (
                           <span style={{ color, fontSize: '12px', fontWeight: 600 }}>
                             {partyLabel(m.party)}
