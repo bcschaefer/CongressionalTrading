@@ -82,7 +82,14 @@ export async function GET() {
         description: row.sector ? `${row.sector} disclosure` : 'Disclosure filing',
       }));
     });
-    const trades = allTrades.filter((trade: TradeResponse) => trade.ticker !== 'N/A' && trade.amount > 0);
+    // A handful of disclosures have corrupted trade_date values from PDF parsing
+    // (e.g. "3031-04-30", "2220-04-07") — exclude anything outside a sane range.
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const isSaneDate = (date: string) => date >= '2000-01-01' && date <= todayIso;
+
+    const trades = allTrades.filter(
+      (trade: TradeResponse) => trade.ticker !== 'N/A' && trade.amount > 0 && isSaneDate(trade.date)
+    );
 
     return NextResponse.json({ trades }, {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },

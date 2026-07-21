@@ -27,6 +27,10 @@ on:
         type: string
         default: ''
 
+defaults:
+  run:
+    working-directory: congressional-trading
+
 jobs:
   sync-house-ptr:
     name: House PTR Disclosures
@@ -35,13 +39,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+          cache: 'pnpm'
+          cache-dependency-path: congressional-trading/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -56,7 +62,6 @@ jobs:
           fi
         env:
           TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
-          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
 
   sync-house-annual:
     name: House Annual Disclosures
@@ -65,13 +70,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+          cache: 'pnpm'
+          cache-dependency-path: congressional-trading/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -86,7 +93,6 @@ jobs:
           fi
         env:
           TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
-          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
 
   sync-senate-ptr:
     name: Senate PTR Disclosures
@@ -95,13 +101,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+          cache: 'pnpm'
+          cache-dependency-path: congressional-trading/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -115,7 +123,6 @@ jobs:
           node scripts/sync-senate-ptr.js --start-date="$THIRTY_DAYS_AGO" --end-date="$TODAY" --no-resume
         env:
           TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
-          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
 
   sync-senate-annual:
     name: Senate Annual Disclosures
@@ -124,13 +131,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+          cache: 'pnpm'
+          cache-dependency-path: congressional-trading/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -140,90 +149,3 @@ jobs:
         run: node scripts/sync-senate-annual.js
         env:
           TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
-          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
-
-        run: |
-          YEAR="${{ inputs.year }}"
-          if [ -n "$YEAR" ]; then
-            node scripts/sync-house-ptr.js --year="$YEAR"
-          else
-            node scripts/sync-house-ptr.js
-          fi
-        env:
-          TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
-          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
-
-  sync-house-annual:
-    name: House Annual Disclosures
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'schedule' || inputs.sync_house_annual }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Sync House Annual
-        run: |
-          YEAR="${{ inputs.year }}"
-          if [ -n "$YEAR" ]; then
-            node scripts/sync-house-annual.js --year="$YEAR"
-          else
-            node scripts/sync-house-annual.js
-          fi
-        env:
-          TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
-          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
-
-  sync-senate-ptr:
-    name: Senate PTR Disclosures
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'schedule' || inputs.sync_senate_ptr }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Sync Senate PTR
-        # Continue on error — eFD site is intermittently in maintenance mode
-        continue-on-error: true
-        run: |
-          TODAY=$(date -u +%m/%d/%Y)
-          THIRTY_DAYS_AGO=$(date -u -d '30 days ago' +%m/%d/%Y 2>/dev/null || date -u -v-30d +%m/%d/%Y)
-          node scripts/sync-senate-ptr.js --start-date="$THIRTY_DAYS_AGO" --end-date="$TODAY" --no-resume
-        env:
-          TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
-          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
-
-  sync-senate-annual:
-    name: Senate Annual Disclosures
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'schedule' || inputs.sync_senate_annual }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Sync Senate Annual
-        continue-on-error: true
-        run: node scripts/sync-senate-annual.js
-        env:
-          TRADING_STORAGE_POSTGRES_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}
-          DATABASE_URL: ${{ secrets.TRADING_STORAGE_POSTGRES_URL }}

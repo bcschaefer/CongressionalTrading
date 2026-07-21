@@ -6,7 +6,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const AdmZip = require('adm-zip');
 const { XMLParser } = require('fast-xml-parser');
-const { PDFParse } = require('pdf-parse');
+const pdfParse = require('pdf-parse');
 const { PrismaClient } = require('@prisma/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { Client: PgClient } = require('pg');
@@ -75,6 +75,47 @@ function toIsoDate(mmddyyyy) {
   const date = new Date(Date.UTC(yyyy, mm - 1, dd));
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString().slice(0, 10);
+}
+
+function isSaneYear(year) {
+  const currentYear = new Date().getUTCFullYear();
+  return Number.isInteger(year) && year >= 2000 && year <= currentYear + 1;
+}
+
+function daysBetween(fromIso, toIso) {
+  return (new Date(`${toIso}T00:00:00Z`) - new Date(`${fromIso}T00:00:00Z`)) / 86_400_000;
+}
+
+// pdf-parse occasionally garbles a digit in the "Transaction Date" column for a specific
+// row (a font/glyph extraction artifact — e.g. "04/30/2021" comes out as "04/30/3031"),
+// while the adjacent "Notification Date" on the same line extracts correctly. Since a
+// transaction can never legally postdate its own notification, cross-check the two: if the
+// transaction date has an insane year or claims to be after the notification date, keep its
+// month/day (those digits matched) and try the notification's year, then the year before it.
+function resolveTransactionDate(rawTransactionDate, rawNotificationDate) {
+  const transactionDate = toIsoDate(rawTransactionDate);
+  const notificationDate = toIsoDate(rawNotificationDate);
+
+  if (!notificationDate) return transactionDate;
+
+  if (transactionDate) {
+    const transactionYear = Number(transactionDate.slice(0, 4));
+    if (isSaneYear(transactionYear) && transactionDate <= notificationDate) {
+      return transactionDate;
+    }
+
+    const monthDay = transactionDate.slice(5);
+    const notificationYear = Number(notificationDate.slice(0, 4));
+    for (const candidateYear of [notificationYear, notificationYear - 1]) {
+      const candidate = `${candidateYear}-${monthDay}`;
+      const gap = daysBetween(candidate, notificationDate);
+      if (gap >= 0 && gap <= 400) {
+        return candidate;
+      }
+    }
+  }
+
+  return notificationDate;
 }
 
 function discoverYearsFromPage(html) {
@@ -220,6 +261,23 @@ function extractTradesFromPdfText(docId, text) {
   let pendingTicker = null;
 
   for (const cleanLine of lines) {
+    // Combined format (newer PDFs): ticker and trade columns concatenated on one line
+    // e.g. "Amazon.com, Inc. (AMZN) [ST]P01/02/201901/02/2019$1,001 - $15,000"
+    const combinedMatch = cleanLine.match(
+      /\(([A-Z][A-Z0-9.]{0,9})\)\s*(?:\[[A-Z]{1,5}\]\s*)?([PS])(?:\s*\([^)]+\))?\s*(\d{2}\/\d{2}\/\d{4})\s*(\d{2}\/\d{2}\/\d{4})\s*(\$[\d,]+)\s*-\s*(\$[\d,]+)/
+    );
+    if (combinedMatch) {
+      const tradeDate = resolveTransactionDate(combinedMatch[3], combinedMatch[4]);
+      const amountLow = parseMoney(combinedMatch[5]);
+      const amountHigh = parseMoney(combinedMatch[6]);
+      const amount = (amountLow + amountHigh) / 2;
+      if (tradeDate && Number.isFinite(amount) && amount > 0) {
+        rows.push({ docId, ticker: combinedMatch[1], tradeType: combinedMatch[2], tradeDate, amount });
+      }
+      pendingTicker = null;
+      continue;
+    }
+
     // Try to detect ticker from lines like "(GSK)" or "(GSK) [ST]"
     const tickerMatch = cleanLine.match(/\(([A-Z][A-Z0-9.]{0,9})\)/);
     // Don't treat "(partial)" or date-containing lines as tickers
@@ -228,17 +286,17 @@ function extractTradesFromPdfText(docId, text) {
       continue;
     }
 
-    // Match transaction line — handles "S", "P", "S (partial)", "P (partial)" etc.
+    // Match transaction line with spaces — handles "S", "P", "S (partial)", "P (partial)" etc.
     // Format: "[SP][ (partial)]   MM/DD/YYYY MM/DD/YYYY $lo - $hi"
     const tradeLinePattern =
-      /\b([PS])(?:\s*\([^)]+\))?\s+(\d{2}\/\d{2}\/\d{4})\s+\d{2}\/\d{2}\/\d{4}\s+(\$[\d,]+)\s*-\s*(\$[\d,]+)/;
+      /\b([PS])(?:\s*\([^)]+\))?\s+(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})\s+(\$[\d,]+)\s*-\s*(\$[\d,]+)/;
     const tradeMatch = cleanLine.match(tradeLinePattern);
 
     if (tradeMatch) {
       const tradeType = tradeMatch[1];
-      const tradeDate = toIsoDate(tradeMatch[2]);
-      const amountLow = parseMoney(tradeMatch[3]);
-      const amountHigh = parseMoney(tradeMatch[4]);
+      const tradeDate = resolveTransactionDate(tradeMatch[2], tradeMatch[3]);
+      const amountLow = parseMoney(tradeMatch[4]);
+      const amountHigh = parseMoney(tradeMatch[5]);
       const amount = (amountLow + amountHigh) / 2;
 
       if (tradeDate && Number.isFinite(amount) && amount > 0) {
@@ -272,9 +330,7 @@ async function fetchAndParsePtrPdf(year, docId) {
   }
 
   const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
-  const parser = new PDFParse({ data: pdfBuffer });
-  const parsed = await parser.getText();
-  await parser.destroy();
+  const parsed = await pdfParse(pdfBuffer);
 
   const rows = extractTradesFromPdfText(docId, parsed.text);
 

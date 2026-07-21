@@ -27,6 +27,7 @@ function parseArgs(argv) {
     endDate: new Date().toISOString().slice(0, 10),
     pageSize: 100,
     resume: true,
+    force: false,
   };
 
   const mmddyyyy = (isoDate) => {
@@ -45,6 +46,8 @@ function parseArgs(argv) {
       if (Number.isFinite(n) && n > 0) defaults.pageSize = n;
     } else if (arg === '--no-resume') {
       defaults.resume = false;
+    } else if (arg === '--force') {
+      defaults.force = true;
     }
   }
 
@@ -156,6 +159,7 @@ async function run() {
 
     let insertedReports = checkpoint?.insertedReports ?? 0;
     let insertedTrades = checkpoint?.insertedTrades ?? 0;
+    let replacedReports = 0;
     let skippedPaper = checkpoint?.skippedPaper ?? 0;
     let skippedNoMatch = checkpoint?.skippedNoMatch ?? 0;
     let skippedNoTrades = checkpoint?.skippedNoTrades ?? 0;
@@ -175,7 +179,21 @@ async function run() {
         where: { doc_id: report.reportId },
         select: { id: true },
       });
-      if (exists) continue;
+      if (exists) {
+        if (!args.force) continue;
+        // Force mode: delete existing trades (and their link table rows) then the disclosure
+        const tradeIds = (await prisma.trades.findMany({
+          where: { disclosure_id: exists.id },
+          select: { id: true },
+        })).map((t) => t.id);
+        if (tradeIds.length > 0) {
+          await prisma.bill_trade_links.deleteMany({ where: { trade_id: { in: tradeIds } } });
+          await prisma.meeting_trades.deleteMany({ where: { trade_id: { in: tradeIds } } });
+          await prisma.trades.deleteMany({ where: { id: { in: tradeIds } } });
+        }
+        await prisma.disclosures.delete({ where: { id: exists.id } });
+        replacedReports += 1;
+      }
 
       const bioguide = resolveBioguideForName(report.firstName, report.lastName, memberIndex);
       if (!bioguide) {
@@ -288,7 +306,7 @@ async function run() {
     });
 
     console.log(
-      `Senate PTR sync finished. discovered=${dedupedReports.length}, insertedReports=${insertedReports}, insertedTrades=${insertedTrades}, skippedPaper=${skippedPaper}, skippedNoMatch=${skippedNoMatch}, skippedNoTrades=${skippedNoTrades}, skippedFetchErrors=${skippedFetchErrors}, skippedDbErrors=${skippedDbErrors}`
+      `Senate PTR sync finished. discovered=${dedupedReports.length}, insertedReports=${insertedReports}, replacedReports=${replacedReports}, insertedTrades=${insertedTrades}, skippedPaper=${skippedPaper}, skippedNoMatch=${skippedNoMatch}, skippedNoTrades=${skippedNoTrades}, skippedFetchErrors=${skippedFetchErrors}, skippedDbErrors=${skippedDbErrors}`
     );
   } finally {
     await prisma.$disconnect();

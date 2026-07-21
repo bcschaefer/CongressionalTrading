@@ -59,6 +59,8 @@ const NICKNAME_VARIANTS = {
   phillip: ['phil'],
   philip: ['phil'],
   yevgeny: ['eugene', 'gene'],
+  mitchell: ['mitch'],
+  addison: ['mitch'],
 };
 
 const NICK_TO_CANONICAL = {};
@@ -170,7 +172,7 @@ async function fetchWithRetry(url, options = {}, retries = 4) {
 async function createSenateSession() {
   const cookieJar = {};
 
-  const homeRes = await fetchWithRetry(SEARCH_HOME_URL, { redirect: 'manual' });
+  const homeRes = await fetchWithRetry(SEARCH_HOME_URL);
   if (!homeRes.ok) {
     throw new Error(`Senate home request failed: ${homeRes.status}`);
   }
@@ -187,7 +189,8 @@ async function createSenateSession() {
     csrfmiddlewaretoken: csrfToken,
   });
 
-  const agreeRes = await fetchWithRetry(SEARCH_AGREE_URL, {
+  // The agreement form's action="" posts back to /search/home/ (not /search/)
+  const agreeRes = await fetchWithRetry(SEARCH_HOME_URL, {
     method: 'POST',
     headers: {
       'content-type': 'application/x-www-form-urlencoded',
@@ -568,6 +571,7 @@ module.exports = {
   isLikelyAnnualTitle,
   isLikelyPtrTitle,
   parseReportRow,
+  parseAmountRange,
   createSenateSession,
   fetchAllReportRows,
   buildMemberIndex,

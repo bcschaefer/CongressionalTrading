@@ -8,7 +8,9 @@ import NetWorthLineChart, { type NetWorthHistoryPoint } from './components/NetWo
 import {
   getTradeDirection,
   groupTradesByCongressman,
+  sortCongressmanGroups,
   type HomeTrade,
+  type TraderSortMode,
 } from '@/lib/home-trades';
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -95,6 +97,7 @@ export default function Hero() {
   const [recentTrades, setRecentTrades] = useState<HomeTrade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBioguide, setSelectedBioguide] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<TraderSortMode>('prolific');
   const [netWorthHistory, setNetWorthHistory] = useState<NetWorthHistoryPoint[]>([]);
   const [netWorthLoading, setNetWorthLoading] = useState(false);
   const [detailYear, setDetailYear] = useState<number | null>(null);
@@ -131,6 +134,10 @@ export default function Hero() {
   }, []);
 
   const groupedCongressmen = useMemo(() => groupTradesByCongressman(recentTrades), [recentTrades]);
+  const displayedGroups = useMemo(
+    () => sortCongressmanGroups(groupedCongressmen, sortMode),
+    [groupedCongressmen, sortMode]
+  );
 
   // Reset detail panel when member changes
   useEffect(() => {
@@ -210,10 +217,38 @@ export default function Hero() {
           </div>
 
           <div className="w-full min-w-0 lg:w-1/2">
-            <h2 className="mb-2 text-center text-2xl font-black tracking-wide text-purple-800 sm:text-3xl">Most Prolific Traders</h2>
-            <p className="mb-6 text-center text-sm font-medium text-gray-500">Based on recent disclosures — hover to preview trades</p>
+            <h2 className="mb-2 text-center text-2xl font-black tracking-wide text-purple-800 sm:text-3xl">
+              {sortMode === 'prolific' ? 'Most Prolific Traders' : 'Most Recent Traders'}
+            </h2>
+            <p className="mb-3 text-center text-sm font-medium text-gray-500">
+              {sortMode === 'prolific'
+                ? 'Ranked by trade count — hover to preview trades'
+                : 'Ranked by most recent disclosure — hover to preview trades'}
+            </p>
+            <div className="mb-6 flex justify-center">
+              <div className="inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setSortMode('prolific')}
+                  className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors ${
+                    sortMode === 'prolific' ? 'bg-purple-700 text-white' : 'text-gray-500 hover:text-purple-700'
+                  }`}
+                >
+                  Prolific
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSortMode('recent')}
+                  className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors ${
+                    sortMode === 'recent' ? 'bg-purple-700 text-white' : 'text-gray-500 hover:text-purple-700'
+                  }`}
+                >
+                  Recent
+                </button>
+              </div>
+            </div>
             <ProlificTradersTable
-              groups={groupedCongressmen}
+              groups={displayedGroups}
               isLoading={isLoading}
               selectedBioguide={selectedBioguide}
               onHoverRow={setSelectedBioguide}

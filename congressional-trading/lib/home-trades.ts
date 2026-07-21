@@ -106,3 +106,13 @@ export function groupTradesByCongressman(trades: HomeTrade[]): CongressmanGroup[
       return b.totalAmount - a.totalAmount;
     });
 }
+
+export type TraderSortMode = 'prolific' | 'recent';
+
+export function sortCongressmanGroups(groups: CongressmanGroup[], mode: TraderSortMode): CongressmanGroup[] {
+  if (mode === 'prolific') {
+    return groups;
+  }
+
+  return [...groups].sort((a, b) => b.latestDate.localeCompare(a.latestDate));
+}

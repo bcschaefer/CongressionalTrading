@@ -286,21 +286,30 @@ export default function CongressmanPage() {
           ))}
         </div>
         <h2 style={{ marginTop: '4px', marginBottom: '14px', textAlign: 'center', fontSize: 'clamp(1.9rem, 8vw, 3rem)', fontWeight: 800, lineHeight: 1.05, color: '#1f2937' }}>
-          Trades by {tradeView === 'ticker' ? 'Ticker' : 'Year'}
+          Trades {tradeView === 'ticker' ? 'by Ticker' : '& Net Worth by Year'}
         </h2>
-        <div className="w-full overflow-x-auto overflow-y-hidden">
+        {tradeView === 'year' ? (
           <TradeBarChart
             trades={purchaseTrades}
             saleTrades={saleTrades}
             color="#10b981"
             emptyMessage="No trades on record"
-            groupByTicker={tradeView === 'ticker'}
-            groupByYear={tradeView === 'year'}
+            groupByYear={true}
           />
-        </div>
+        ) : (
+          <div className="w-full overflow-x-auto overflow-y-hidden">
+            <TradeBarChart
+              trades={purchaseTrades}
+              saleTrades={saleTrades}
+              color="#10b981"
+              emptyMessage="No trades on record"
+              groupByTicker={true}
+            />
+          </div>
+        )}
       </div>
     ),
-    [purchaseTrades, saleTrades, tradeView]
+    [purchaseTrades, saleTrades, tradeView, netWorthHistory, historyLoading]
   );
 
   if (loading) {
@@ -444,20 +453,22 @@ export default function CongressmanPage() {
             <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 overflow-hidden">
               <h2
                 style={{
-                  marginTop: '8px',
-                  marginBottom: '6px',
+                  marginTop: '4px',
+                  marginBottom: '14px',
                   textAlign: 'center',
-                  fontSize: 'clamp(1.4rem, 5vw, 2rem)',
+                  fontSize: 'clamp(1.9rem, 8vw, 3rem)',
                   fontWeight: 800,
-                  color: '#1e3a8a',
+                  lineHeight: 1.05,
+                  color: '#1f2937',
                 }}
               >
-                Net Worth Over Time
+                Estimated Net Worth
               </h2>
-              <p style={{ textAlign: 'center', fontSize: '13px', color: '#9ca3af', marginBottom: '16px' }}>
-                Estimated from annual financial disclosures
-              </p>
-              <NetWorthLineChart data={netWorthHistory} isLoading={historyLoading} />
+              <NetWorthLineChart
+                data={netWorthHistory}
+                isLoading={historyLoading}
+                emptyMessage="No historical net worth data available."
+              />
             </div>
             <NetWorthSection netWorth={netWorth} disclosures={disclosuresSorted} />
           </div>

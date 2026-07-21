@@ -76,14 +76,14 @@ export default function ProlificTradersTable({
       </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-170">
+        <table className="w-full table-fixed">
           <thead className="bg-linear-to-r from-gray-100 to-gray-200">
             <tr>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-6 sm:py-4">#</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-6 sm:py-4">Congressman</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-6 sm:py-4">Recent Date</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-6 sm:py-4">Trades</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-6 sm:py-4">Total Amount</th>
+              <th className="w-[8%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">#</th>
+              <th className="w-[34%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Congressman</th>
+              <th className="w-[22%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Recent Date</th>
+              <th className="w-[14%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Trades</th>
+              <th className="w-[22%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Total Amount</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -109,14 +109,14 @@ export default function ProlificTradersTable({
                 tabIndex={0}
                 role="link"
               >
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-center sm:px-6 sm:py-6">
+                <td className="px-2 py-4 text-sm text-center sm:px-4 sm:py-6">
                   <span className="text-xs font-semibold text-gray-400">#{index + 1}</span>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center sm:px-6 sm:py-6">
+                <td className="px-2 py-4 text-sm font-medium text-gray-900 text-center sm:px-4 sm:py-6">
                   <div className="flex items-center justify-center gap-2">
-                    <span className="font-semibold text-blue-700">{group.congressman}</span>
+                    <span className="truncate font-semibold text-blue-700">{group.congressman}</span>
                     {group.chamber && (
-                      <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                      <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
                         group.chamber.toLowerCase() === 'senate'
                           ? 'bg-red-100 text-red-700'
                           : 'bg-blue-100 text-blue-700'
@@ -124,9 +124,9 @@ export default function ProlificTradersTable({
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center sm:px-6 sm:py-6">{formatDate(group.latestDate)}</td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center sm:px-6 sm:py-6">{getTradeCountLabel(group.trades.length)}</td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center font-semibold sm:px-6 sm:py-6">{formatMoney(group.totalAmount)}</td>
+                <td className="px-2 py-4 text-sm text-gray-500 text-center sm:px-4 sm:py-6">{formatDate(group.latestDate)}</td>
+                <td className="px-2 py-4 text-sm text-gray-500 text-center sm:px-4 sm:py-6">{getTradeCountLabel(group.trades.length)}</td>
+                <td className="px-2 py-4 text-sm text-gray-500 text-center font-semibold sm:px-4 sm:py-6">{formatMoney(group.totalAmount)}</td>
               </tr>
             ))}
           </tbody>
