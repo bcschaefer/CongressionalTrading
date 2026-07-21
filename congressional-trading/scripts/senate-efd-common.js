@@ -314,13 +314,39 @@ function parseReportRow(row) {
   };
 }
 
+// The live search UI submits the full jQuery DataTables server-side-processing
+// parameter set (per-column search/order metadata, plus candidate_state/senator_state/
+// office_id and start/end dates with time-of-day suffixes). A request missing these is
+// rejected — the site serves back a generic "site under maintenance" page rather than a
+// clean validation error, which looks exactly like a real outage from the caller's side.
+const RESULT_COLUMNS = ['first_name', 'last_name', 'office', 'report_type', 'date_filed'];
+
 async function fetchReportDataPage(session, options) {
   const form = new URLSearchParams();
   form.set('draw', String(options.draw ?? 1));
+
+  RESULT_COLUMNS.forEach((name, i) => {
+    form.set(`columns[${i}][data]`, String(i));
+    form.set(`columns[${i}][name]`, '');
+    form.set(`columns[${i}][searchable]`, 'true');
+    form.set(`columns[${i}][orderable]`, 'true');
+    form.set(`columns[${i}][search][value]`, '');
+    form.set(`columns[${i}][search][regex]`, 'false');
+  });
+  form.set('order[0][column]', '1');
+  form.set('order[0][dir]', 'asc');
+  form.set('order[1][column]', '0');
+  form.set('order[1][dir]', 'asc');
+
   form.set('start', String(options.start ?? 0));
   form.set('length', String(options.length ?? 100));
-  form.set('submitted_start_date', options.startDate);
-  form.set('submitted_end_date', options.endDate);
+  form.set('search[value]', '');
+  form.set('search[regex]', 'false');
+  form.set('submitted_start_date', `${options.startDate} 00:00:00`);
+  form.set('submitted_end_date', `${options.endDate} 23:59:59`);
+  form.set('candidate_state', '');
+  form.set('senator_state', '');
+  form.set('office_id', '');
   form.set('first_name', options.firstName ?? '');
   form.set('last_name', options.lastName ?? '');
 
@@ -330,13 +356,14 @@ async function fetchReportDataPage(session, options) {
     form.set('report_types', '[]');
   }
 
+  // Filer type 1 = Senator, 4 = Candidate, 5 = Former Senator. This previously defaulted
+  // to [4] (Candidate), which is why the live scraper never returned real Senate PTRs.
   if (options.filerTypes) {
     form.set('filer_types', JSON.stringify(options.filerTypes));
   } else {
-    form.set('filer_types', '[4]');
+    form.set('filer_types', '[1]');
   }
 
-  form.set('office_id_first', '0');
   form.set('csrfmiddlewaretoken', session.csrfToken);
 
   const res = await fetchWithRetry(SEARCH_REPORT_DATA_URL, {
@@ -347,6 +374,7 @@ async function fetchReportDataPage(session, options) {
       referer: SEARCH_AGREE_URL,
       'x-requested-with': 'XMLHttpRequest',
       'x-csrftoken': session.csrfToken,
+      accept: 'application/json, text/javascript, */*; q=0.01',
     },
     body: form.toString(),
   });

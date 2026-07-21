@@ -96,7 +96,7 @@ function checkpointSignature(args) {
     startDate: args.startDate,
     endDate: args.endDate,
     reportTypes: [11],
-    filerTypes: [4],
+    filerTypes: [1],
   });
 }
 
@@ -131,7 +131,7 @@ async function run() {
       startDate: args.startDate,
       endDate: args.endDate,
       pageSize: args.pageSize,
-      filerTypes: [4],
+      filerTypes: [1],
       reportTypes: [11],
     });
 
