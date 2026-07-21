@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { fetchSenateFilingImages, isSenateViewerUrl } from '@/lib/senate-filing-images';
 
 export const runtime = 'nodejs';
 
@@ -323,6 +324,34 @@ export async function GET(
         summary: null,
         filing: null,
       });
+    }
+
+    // Senate annual disclosures are scanned paper filings — there's no text to
+    // parse. Show the filing's page images instead of an assets/liabilities breakdown.
+    if (isSenateViewerUrl(disclosure.source_url)) {
+      try {
+        const images = await fetchSenateFilingImages(disclosure.source_url!);
+        return NextResponse.json({
+          filing: disclosure,
+          assets: [],
+          liabilities: [],
+          stocks: [],
+          byCategory: {},
+          summary: null,
+          images,
+        });
+      } catch (error) {
+        console.error('[net-worth] Failed to fetch Senate filing images:', error);
+        return NextResponse.json({
+          filing: disclosure,
+          assets: [],
+          liabilities: [],
+          stocks: [],
+          byCategory: {},
+          summary: null,
+          error: 'Failed to load this filing.',
+        });
+      }
     }
 
     const sourceIsPdf =

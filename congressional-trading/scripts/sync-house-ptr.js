@@ -237,20 +237,33 @@ async function fetchPtrFilingsForYear(year) {
   return extractPtrFilings(xmlText);
 }
 
+// Matches either a value range ("$1,001 - $15,000") or a single absolute value,
+// optionally prefixed by "Over" (the highest disclosure bracket, e.g. "Over $1,000,000",
+// sometimes itself prefixed by an owner code like "Spouse/DC Over $1,000,000").
+const AMOUNT_RE = /(?:Over\s*)?\$([\d,]+)(?:\s*-\s*\$([\d,]+))?/;
+
+function parseAmountFromTail(tail) {
+  const m = String(tail).match(AMOUNT_RE);
+  if (!m) return null;
+  const lo = parseMoney(m[1]);
+  if (!Number.isFinite(lo)) return null;
+  const hi = m[2] ? parseMoney(m[2]) : lo;
+  return (lo + hi) / 2;
+}
+
 function extractTradesFromPdfText(docId, text) {
   const rows = [];
 
-  // The PDF text sometimes splits the amount range across two lines:
-  //   "S    07/28/2025 08/11/2025 $1,001 -"
-  //   "$15,000"
+  // The PDF text sometimes splits the amount across two lines:
+  //   "S    07/28/2025 08/11/2025 $1,001 -"        or        "...Spouse/DC Over"
+  //   "$15,000"                                              "$1,000,000"
   // Join such continuation lines first so each logical row is one string.
   const rawLines = String(text).split(/\r?\n/).map((l) => l.trim());
   const lines = [];
   for (let i = 0; i < rawLines.length; i++) {
     const cur = rawLines[i];
     const next = rawLines[i + 1] ?? '';
-    // If line ends with "- " or "-" and next line starts with "$", merge them.
-    if (/\$[\d,]+\s*-\s*$/.test(cur) && /^\$[\d,]/.test(next)) {
+    if ((/\$[\d,]+\s*-\s*$/.test(cur) || /\bOver\s*$/i.test(cur)) && /^\$[\d,]/.test(next)) {
       lines.push(`${cur} ${next}`);
       i++; // skip next
     } else {
@@ -263,16 +276,30 @@ function extractTradesFromPdfText(docId, text) {
   for (const cleanLine of lines) {
     // Combined format (newer PDFs): ticker and trade columns concatenated on one line
     // e.g. "Amazon.com, Inc. (AMZN) [ST]P01/02/201901/02/2019$1,001 - $15,000"
+    // Type is P (purchase), S (sale), or E (exchange, e.g. a spin-off).
     const combinedMatch = cleanLine.match(
-      /\(([A-Z][A-Z0-9.]{0,9})\)\s*(?:\[[A-Z]{1,5}\]\s*)?([PS])(?:\s*\([^)]+\))?\s*(\d{2}\/\d{2}\/\d{4})\s*(\d{2}\/\d{2}\/\d{4})\s*(\$[\d,]+)\s*-\s*(\$[\d,]+)/
+      /\(([A-Z][A-Z0-9.]{0,9})\)\s*(?:\[[A-Z]{1,5}\]\s*)?([PSE])(?:\s*\([^)]+\))?\s*(\d{2}\/\d{2}\/\d{4})\s*(\d{2}\/\d{2}\/\d{4})\s*(.*)$/
     );
     if (combinedMatch) {
       const tradeDate = resolveTransactionDate(combinedMatch[3], combinedMatch[4]);
-      const amountLow = parseMoney(combinedMatch[5]);
-      const amountHigh = parseMoney(combinedMatch[6]);
-      const amount = (amountLow + amountHigh) / 2;
-      if (tradeDate && Number.isFinite(amount) && amount > 0) {
+      const amount = parseAmountFromTail(combinedMatch[5]);
+      if (tradeDate && amount && amount > 0) {
         rows.push({ docId, ticker: combinedMatch[1], tradeType: combinedMatch[2], tradeDate, amount });
+      }
+      pendingTicker = null;
+      continue;
+    }
+
+    // Cryptocurrency assets use a bare lowercase symbol + [CT] bracket instead of (TICKER)
+    // e.g. "usdc [CT]P12/26/202512/26/2025$1,001 - $15,000"
+    const cryptoMatch = cleanLine.match(
+      /\b([a-zA-Z]{2,10})\s*\[CT\]\s*([PSE])(?:\s*\([^)]+\))?\s*(\d{2}\/\d{2}\/\d{4})\s*(\d{2}\/\d{2}\/\d{4})\s*(.*)$/
+    );
+    if (cryptoMatch) {
+      const tradeDate = resolveTransactionDate(cryptoMatch[3], cryptoMatch[4]);
+      const amount = parseAmountFromTail(cryptoMatch[5]);
+      if (tradeDate && amount && amount > 0) {
+        rows.push({ docId, ticker: cryptoMatch[1].toUpperCase(), tradeType: cryptoMatch[2], tradeDate, amount });
       }
       pendingTicker = null;
       continue;
@@ -281,25 +308,24 @@ function extractTradesFromPdfText(docId, text) {
     // Try to detect ticker from lines like "(GSK)" or "(GSK) [ST]"
     const tickerMatch = cleanLine.match(/\(([A-Z][A-Z0-9.]{0,9})\)/);
     // Don't treat "(partial)" or date-containing lines as tickers
-    if (tickerMatch && !/\b[PS]\b/.test(cleanLine) && !/\d{2}\/\d{2}\/\d{4}/.test(cleanLine)) {
+    if (tickerMatch && !/\b[PSE]\b/.test(cleanLine) && !/\d{2}\/\d{2}\/\d{4}/.test(cleanLine)) {
       pendingTicker = tickerMatch[1];
       continue;
     }
 
-    // Match transaction line with spaces — handles "S", "P", "S (partial)", "P (partial)" etc.
-    // Format: "[SP][ (partial)]   MM/DD/YYYY MM/DD/YYYY $lo - $hi"
+    // Match transaction line — handles "S", "P", "E", "S (partial)" etc., with or without
+    // whitespace between the type code and the dates (varies by PDF).
+    // Format: "[PSE][ (partial)] MM/DD/YYYY MM/DD/YYYY <$lo - $hi | Over $X>"
     const tradeLinePattern =
-      /\b([PS])(?:\s*\([^)]+\))?\s+(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})\s+(\$[\d,]+)\s*-\s*(\$[\d,]+)/;
+      /\b([PSE])(?:\s*\([^)]+\))?\s*(\d{2}\/\d{2}\/\d{4})\s*(\d{2}\/\d{2}\/\d{4})\s*(.*)$/;
     const tradeMatch = cleanLine.match(tradeLinePattern);
 
     if (tradeMatch) {
       const tradeType = tradeMatch[1];
       const tradeDate = resolveTransactionDate(tradeMatch[2], tradeMatch[3]);
-      const amountLow = parseMoney(tradeMatch[4]);
-      const amountHigh = parseMoney(tradeMatch[5]);
-      const amount = (amountLow + amountHigh) / 2;
+      const amount = parseAmountFromTail(tradeMatch[4]);
 
-      if (tradeDate && Number.isFinite(amount) && amount > 0) {
+      if (tradeDate && amount && amount > 0) {
         rows.push({
           docId,
           ticker: pendingTicker,
@@ -523,6 +549,7 @@ async function run() {
             }
           });
 
+          await prisma.ptr_failed_docs.deleteMany({ where: { doc_id: docId } });
           docsSucceeded += 1;
         } catch (error) {
           docsFailed += 1;
