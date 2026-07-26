@@ -35,7 +35,10 @@ function parseAmountRange(amountRange: string | null): number {
   return (values[0] + values[1]) / 2;
 }
 
-export const revalidate = 300; // cache for 5 minutes
+// `revalidate` alone doesn't reliably re-run this route in production — Next.js can
+// treat it as fully static and freeze it at whatever the last build produced. Force
+// per-request execution and let the Cache-Control header below handle CDN caching.
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

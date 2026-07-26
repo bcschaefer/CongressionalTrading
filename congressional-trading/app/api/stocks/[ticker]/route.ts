@@ -5,7 +5,10 @@ import { readLocalCache, writeLocalCache } from '@/lib/local-api-cache';
 // @ts-ignore
 import * as yahooFinance from 'yahoo-finance2';
 
-export const revalidate = 300;
+// `revalidate` alone doesn't reliably re-run this route in production — Next.js can
+// treat it as fully static and freeze it at whatever the last build produced. Force
+// per-request execution and let the Cache-Control header below handle CDN caching.
+export const dynamic = 'force-dynamic';
 
 async function getHistoricalPrice(ticker: string, date: string): Promise<number | null> {
   try {
