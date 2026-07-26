@@ -125,6 +125,7 @@ export async function GET(
       filing_type: string;
       filing_year: number;
       filing_date: string | null;
+      source_url: string | null;
     }> = [];
 
     try {
@@ -137,6 +138,7 @@ export async function GET(
           filing_type: true,
           filing_year: true,
           filing_date: true,
+          source_url: true,
         },
       });
     } catch (error) {

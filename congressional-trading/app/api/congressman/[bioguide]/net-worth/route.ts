@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { fetchSenateFilingImages, isSenateViewerUrl } from '@/lib/senate-filing-images';
+import { getSenateFilingKind, fetchSenateAnnualFilingHtml, parseSenateAnnualFiling } from '@/lib/senate-annual-filing';
 
 export const runtime = 'nodejs';
 
@@ -257,15 +257,15 @@ export async function GET(
       return NextResponse.json({ error: 'Member not found' }, { status: 404 });
     }
 
-    let disclosure = await prisma.annual_financial_disclosures.findFirst({
+    let allDisclosures = await prisma.annual_financial_disclosures.findMany({
       where: { bioguide },
       orderBy: [{ filing_year: 'desc' }, { filing_date: 'desc' }, { id: 'desc' }],
       select: { doc_id: true, filing_year: true, filing_date: true, source_url: true },
     });
 
-    console.log(`[net-worth] ${bioguide} bioguide lookup: ${disclosure ? 'FOUND' : 'NOT FOUND'}`);
+    console.log(`[net-worth] ${bioguide} bioguide lookup: ${allDisclosures.length > 0 ? 'FOUND' : 'NOT FOUND'}`);
 
-    if (!disclosure) {
+    if (allDisclosures.length === 0) {
       const { first, last } = extractFirstLast(member.full_name);
       if (first && last) {
         const candidates = await prisma.annual_financial_disclosures.findMany({
@@ -297,25 +297,22 @@ export async function GET(
           },
         });
 
-        const strict = candidates.find(
+        const strict = candidates.filter(
           (c: (typeof candidates)[number]) =>
             (c.first_name ?? '').toLowerCase().startsWith(first) &&
             (c.last_name ?? '').toLowerCase() === last
         );
 
-        const picked = strict ?? candidates[0];
-        if (picked) {
-          disclosure = {
-            doc_id: picked.doc_id,
-            filing_year: picked.filing_year,
-            filing_date: picked.filing_date,
-            source_url: picked.source_url,
-          };
-        }
+        allDisclosures = (strict.length > 0 ? strict : candidates).map((c) => ({
+          doc_id: c.doc_id,
+          filing_year: c.filing_year,
+          filing_date: c.filing_date,
+          source_url: c.source_url,
+        }));
       }
     }
 
-    if (!disclosure) {
+    if (allDisclosures.length === 0) {
       return NextResponse.json({
         assets: [],
         liabilities: [],
@@ -326,22 +323,51 @@ export async function GET(
       });
     }
 
-    // Senate annual disclosures are scanned paper filings — there's no text to
-    // parse. Show the filing's page images instead of an assets/liabilities breakdown.
-    if (isSenateViewerUrl(disclosure.source_url)) {
+    // Paper Senate filings are scanned images with no text layer — ignore them entirely.
+    // (getSenateFilingKind returns null for House disclosures, so this only excludes Senate paper.)
+    const disclosure = allDisclosures.find((d) => getSenateFilingKind(d.source_url) !== 'paper') ?? null;
+
+    if (!disclosure) {
+      return NextResponse.json({
+        assets: [],
+        liabilities: [],
+        stocks: [],
+        byCategory: {},
+        summary: null,
+        filing: null,
+        noElectronicDisclosures: true,
+      });
+    }
+
+    if (getSenateFilingKind(disclosure.source_url) === 'electronic') {
       try {
-        const images = await fetchSenateFilingImages(disclosure.source_url!);
+        const html = await fetchSenateAnnualFilingHtml(disclosure.source_url!);
+        const { assets, liabilities } = parseSenateAnnualFiling(html);
+
+        const totalAssets = assets.reduce((s, a) => s + a.valueMid, 0);
+        const totalLiabilities = liabilities.reduce((s, l) => s + l.valueMid, 0);
+
+        const byCategory: Record<string, { total: number; count: number }> = {};
+        for (const asset of assets) {
+          if (!byCategory[asset.category]) byCategory[asset.category] = { total: 0, count: 0 };
+          byCategory[asset.category].total += asset.valueMid;
+          byCategory[asset.category].count += 1;
+        }
+
         return NextResponse.json({
           filing: disclosure,
-          assets: [],
-          liabilities: [],
-          stocks: [],
-          byCategory: {},
-          summary: null,
-          images,
+          assets,
+          liabilities,
+          stocks: assets.filter((a) => a.category === 'Stocks'),
+          byCategory,
+          summary: {
+            totalAssets,
+            totalLiabilities,
+            estimatedNetWorth: totalAssets - totalLiabilities,
+          },
         });
       } catch (error) {
-        console.error('[net-worth] Failed to fetch Senate filing images:', error);
+        console.error('[net-worth] Failed to parse Senate annual filing:', error);
         return NextResponse.json({
           filing: disclosure,
           assets: [],

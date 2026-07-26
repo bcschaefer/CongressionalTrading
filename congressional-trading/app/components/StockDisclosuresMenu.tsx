@@ -2,12 +2,17 @@
 
 import { useState } from 'react';
 
+function isSenateSourceUrl(url: string | null): boolean {
+  return !!url && /efdsearch\.senate\.gov\//i.test(url);
+}
+
 export type AnnualDisclosureItem = {
   id: number;
   doc_id: string;
   filing_type: string;
   filing_year: number;
   filing_date: string | null;
+  source_url: string | null;
 };
 
 export default function StockDisclosuresMenu({ disclosures }: { disclosures: AnnualDisclosureItem[] }) {
@@ -65,7 +70,9 @@ export default function StockDisclosuresMenu({ disclosures }: { disclosures: Ann
             </p>
           ) : (
             disclosures.map((d) => {
-              const url = `https://disclosures-clerk.house.gov/public_disc/financial-pdfs/${d.filing_year}/${d.doc_id}.pdf`;
+              const url = isSenateSourceUrl(d.source_url)
+                ? d.source_url!
+                : `https://disclosures-clerk.house.gov/public_disc/financial-pdfs/${d.filing_year}/${d.doc_id}.pdf`;
               return (
                 <a
                   key={d.id}

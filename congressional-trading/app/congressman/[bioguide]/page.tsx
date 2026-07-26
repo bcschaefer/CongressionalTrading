@@ -109,6 +109,7 @@ export default function CongressmanPage() {
   const [tradeView, setTradeView] = useState<'ticker' | 'year'>('year');
   const [netWorthHistory, setNetWorthHistory] = useState<NetWorthHistoryPoint[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [noElectronicDisclosures, setNoElectronicDisclosures] = useState(false);
   const [votes, setVotes] = useState<VoteRecord[]>([]);
   const [votesLoading, setVotesLoading] = useState(false);
   const [votesLoaded, setVotesLoaded] = useState(false);
@@ -164,6 +165,7 @@ export default function CongressmanPage() {
       .then((r) => r.json())
       .then((data) => {
         setNetWorthHistory(data.history ?? []);
+        setNoElectronicDisclosures(!!data.noElectronicDisclosures);
         setHistoryLoading(false);
       })
       .catch(() => setHistoryLoading(false));
@@ -467,7 +469,11 @@ export default function CongressmanPage() {
               <NetWorthLineChart
                 data={netWorthHistory}
                 isLoading={historyLoading}
-                emptyMessage="No historical net worth data available."
+                emptyMessage={
+                  noElectronicDisclosures
+                    ? 'No electronic disclosures available for this member.'
+                    : 'No historical net worth data available.'
+                }
               />
             </div>
             <NetWorthSection netWorth={netWorth} disclosures={disclosuresSorted} />

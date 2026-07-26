@@ -99,6 +99,7 @@ export default function Hero() {
   const [selectedBioguide, setSelectedBioguide] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<TraderSortMode>('prolific');
   const [netWorthHistory, setNetWorthHistory] = useState<NetWorthHistoryPoint[]>([]);
+  const [noElectronicDisclosures, setNoElectronicDisclosures] = useState(false);
   const [netWorthLoading, setNetWorthLoading] = useState(false);
   const [detailYear, setDetailYear] = useState<number | null>(null);
   const [detailData, setDetailData] = useState<DetailData | null>(null);
@@ -162,6 +163,7 @@ export default function Hero() {
   useEffect(() => {
     if (!selectedBioguide) {
       setNetWorthHistory([]);
+      setNoElectronicDisclosures(false);
       return;
     }
     let cancelled = false;
@@ -172,6 +174,7 @@ export default function Hero() {
         .then((data) => {
           if (!cancelled) {
             setNetWorthHistory(data.history ?? []);
+            setNoElectronicDisclosures(!!data.noElectronicDisclosures);
             setNetWorthLoading(false);
           }
         })
@@ -201,7 +204,16 @@ export default function Hero() {
                 Estimated Net Worth
               </h2>
               <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
-                <NetWorthLineChart data={netWorthHistory} isLoading={netWorthLoading || isLoading} onYearClick={handleYearClick} emptyMessage="Hover a trader to see their net worth" />
+                <NetWorthLineChart
+                  data={netWorthHistory}
+                  isLoading={netWorthLoading || isLoading}
+                  onYearClick={handleYearClick}
+                  emptyMessage={
+                    selectedBioguide && noElectronicDisclosures
+                      ? 'No electronic disclosures available for this member.'
+                      : 'Hover a trader to see their net worth'
+                  }
+                />
                 {detailYear !== null && (
                   <NetWorthDetailPanel year={detailYear} data={detailData} loading={detailLoading} />
                 )}

@@ -30,7 +30,7 @@ export type NetWorthData = {
   stocks: AssetEntry[];
   byCategory: Record<string, { total: number; count: number }>;
   summary: { totalAssets: number; totalLiabilities: number; estimatedNetWorth: number } | null;
-  images?: string[];
+  noElectronicDisclosures?: boolean;
   error?: string;
 };
 
@@ -169,7 +169,11 @@ export default function NetWorthSection({
                   {disclosures.map((d) => (
                     <a
                       key={d.id}
-                      href={`https://disclosures-clerk.house.gov/public_disc/financial-pdfs/${d.filing_year}/${d.doc_id}.pdf`}
+                      href={
+                        d.source_url && /efdsearch\.senate\.gov\//i.test(d.source_url)
+                          ? d.source_url
+                          : `https://disclosures-clerk.house.gov/public_disc/financial-pdfs/${d.filing_year}/${d.doc_id}.pdf`
+                      }
                       target="_blank"
                       rel="noreferrer"
                       style={{
@@ -187,7 +191,7 @@ export default function NetWorthSection({
                     >
                       <span style={{ fontWeight: 600 }}>
                         {d.filing_year}{' '}
-                        {d.filing_type === 'O' ? 'Original' : d.filing_type === 'A' ? 'Amendment' : d.filing_type === 'C' ? 'Candidate' : d.filing_type}
+                        {d.filing_type === 'O' ? 'Original' : d.filing_type === 'A' ? 'Amendment' : d.filing_type === 'C' ? 'Candidate' : d.filing_type === 'SENATE_ANNUAL' ? 'Annual' : d.filing_type}
                       </span>
                       {d.filing_date && (
                         <span style={{ color: '#9ca3af', fontSize: '12px', marginLeft: '12px' }}>
@@ -209,35 +213,17 @@ export default function NetWorthSection({
         </p>
       )}
 
-      {netWorth && !netWorth.summary && !netWorth.images && (
+      {netWorth?.noElectronicDisclosures && (
         <p style={{ textAlign: 'center', color: '#9ca3af', padding: '32px 0', fontSize: '14px' }}>
-          No annual disclosure data available for this member.
+          No electronic disclosures available for this member — their financial disclosures were
+          filed as scanned paper documents, which can&apos;t be parsed into an assets/liabilities breakdown.
         </p>
       )}
 
-      {netWorth?.images && netWorth.images.length > 0 && (
-        <>
-          <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '13px', marginBottom: '18px' }}>
-            Senate financial disclosures are filed as scanned paper documents, not machine-readable
-            PDFs, so an assets/liabilities breakdown isn&apos;t available. Shown below as filed.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
-            {netWorth.images.map((src, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={src}
-                src={src}
-                alt={`Filing page ${i + 1}`}
-                style={{
-                  maxWidth: '100%',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                }}
-              />
-            ))}
-          </div>
-        </>
+      {netWorth && !netWorth.summary && !netWorth.noElectronicDisclosures && (
+        <p style={{ textAlign: 'center', color: '#9ca3af', padding: '32px 0', fontSize: '14px' }}>
+          No annual disclosure data available for this member.
+        </p>
       )}
 
       {netWorth?.summary && (
