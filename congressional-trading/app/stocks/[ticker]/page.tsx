@@ -93,13 +93,14 @@ export default function StockDetailPage() {
     if (!ticker) return;
     fetch(`/api/stocks/${ticker.toUpperCase()}`)
       .then(async (r) => {
-        if (r.status === 404) { setNotFound(true); setLoading(false); return; }
+        if (!r.ok) { setNotFound(true); setLoading(false); return; }
         const json = await r.json();
+        if (!json || !Array.isArray(json.trades)) { setNotFound(true); setLoading(false); return; }
         setData(json);
         setYearRange({ start: null, end: null });
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => { setNotFound(true); setLoading(false); });
   }, [ticker]);
 
   // Initialize full year range when data loads

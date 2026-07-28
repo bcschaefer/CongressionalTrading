@@ -47,19 +47,24 @@ export async function writeLocalCache<T>(
   const filePath = getCacheFilePath(namespace, key);
   const dirPath = path.dirname(filePath);
 
-  await mkdir(dirPath, { recursive: true });
-
-  const payload: CacheEnvelope<T> = {
-    value,
-    expiresAt: Date.now() + ttlSeconds * 1000,
-  };
-
-  const tempFilePath = `${filePath}.tmp`;
-  await writeFile(tempFilePath, JSON.stringify(payload), 'utf8');
+  // Best-effort: this filesystem is read-only outside /tmp on Vercel's serverless
+  // runtime, so a failed write here must never break the request that produced the value.
   try {
-    await rename(tempFilePath, filePath);
+    await mkdir(dirPath, { recursive: true });
+
+    const payload: CacheEnvelope<T> = {
+      value,
+      expiresAt: Date.now() + ttlSeconds * 1000,
+    };
+
+    const tempFilePath = `${filePath}.tmp`;
+    await writeFile(tempFilePath, JSON.stringify(payload), 'utf8');
+    try {
+      await rename(tempFilePath, filePath);
+    } catch {
+      await unlink(tempFilePath).catch(() => undefined);
+    }
   } catch {
-    await unlink(tempFilePath).catch(() => undefined);
-    throw new Error(`Failed to write cache file for ${namespace}/${key}`);
+    // ignore — see comment above
   }
 }
