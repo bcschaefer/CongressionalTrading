@@ -7,6 +7,7 @@ export type HomeTrade = {
   amount: number;
   ticker: string;
   date: string;
+  datePublished: string | null;
   description: string;
 };
 
@@ -70,6 +71,18 @@ export function formatDate(date: string): string {
     day: 'numeric',
     year: 'numeric',
   }).format(parsed);
+}
+
+/** Days between a trade and when it was publicly disclosed, e.g. "+6". Null if either date is missing/invalid. */
+export function getPublishDelayLabel(dateTraded: string, datePublished: string | null): string | null {
+  if (!dateTraded || !datePublished) return null;
+
+  const traded = new Date(`${dateTraded}T00:00:00Z`);
+  const published = new Date(`${datePublished}T00:00:00Z`);
+  if (Number.isNaN(traded.getTime()) || Number.isNaN(published.getTime())) return null;
+
+  const days = Math.round((published.getTime() - traded.getTime()) / 86_400_000);
+  return days >= 0 ? `+${days}` : `${days}`;
 }
 
 export function getTradeCountLabel(count: number): string {

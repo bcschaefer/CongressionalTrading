@@ -66,6 +66,7 @@ model disclosures {
   ticker           String?
   transaction_type String?
   trade_date       String?
+  filed_date       String?
   amount_range     String?
   sector           String?
   members          members  @relation(fields: [bioguide], references: [bioguide], onDelete: NoAction, onUpdate: NoAction)

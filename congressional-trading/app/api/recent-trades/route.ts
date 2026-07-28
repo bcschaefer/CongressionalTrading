@@ -10,6 +10,7 @@ type TradeResponse = {
   amount: number;
   ticker: string;
   date: string;
+  datePublished: string | null;
   description: string;
 };
 
@@ -68,6 +69,7 @@ export async function GET() {
             amount: parseAmountRange(row.amount_range),
             ticker: row.ticker ?? 'N/A',
             date: row.trade_date ?? '',
+            datePublished: row.filed_date ?? null,
             description: row.sector ? `${row.sector} disclosure` : 'Disclosure filing',
           } satisfies TradeResponse,
         ];
@@ -82,6 +84,7 @@ export async function GET() {
         amount: trade.amount ?? parseAmountRange(row.amount_range),
         ticker: trade.ticker ?? row.ticker ?? 'N/A',
         date: trade.trade_date ?? row.trade_date ?? '',
+        datePublished: row.filed_date ?? null,
         description: row.sector ? `${row.sector} disclosure` : 'Disclosure filing',
       }));
     });
@@ -90,9 +93,12 @@ export async function GET() {
     const todayIso = new Date().toISOString().slice(0, 10);
     const isSaneDate = (date: string) => date >= '2000-01-01' && date <= todayIso;
 
-    const trades = allTrades.filter(
-      (trade: TradeResponse) => trade.ticker !== 'N/A' && trade.amount > 0 && isSaneDate(trade.date)
-    );
+    const trades = allTrades
+      .filter((trade: TradeResponse) => trade.ticker !== 'N/A' && trade.amount > 0 && isSaneDate(trade.date))
+      .map((trade: TradeResponse) => ({
+        ...trade,
+        datePublished: trade.datePublished && isSaneDate(trade.datePublished) ? trade.datePublished : null,
+      }));
 
     return NextResponse.json({ trades }, {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },

@@ -230,7 +230,8 @@ async function run() {
         continue;
       }
 
-      const summary = summarizeDisclosure(parsedTrades, report.filedDateIso ?? toIsoDate(report.filedDateText));
+      const filedDate = report.filedDateIso ?? toIsoDate(report.filedDateText);
+      const summary = summarizeDisclosure(parsedTrades, filedDate);
 
       try {
         await prisma.$transaction(async (tx) => {
@@ -241,6 +242,7 @@ async function run() {
               ticker: summary.ticker,
               transaction_type: summary.transactionType,
               trade_date: summary.tradeDate,
+              filed_date: filedDate ?? null,
               amount_range: summary.amountRange,
               sector: normalizeWhitespace(`${report.officeText ?? 'Senate'} PTR`) || 'Senate PTR',
             },

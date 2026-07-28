@@ -520,7 +520,8 @@ async function run() {
 
         const tradeTypeSet = new Set(parsedTrades.map((t) => t.tradeType));
         const disclosureTradeType = tradeTypeSet.size === 1 ? parsedTrades[0].tradeType : 'MIXED';
-        const disclosureDate = toIsoDate(filing.filingDate) || parsedTrades[0].tradeDate;
+        const filedDate = toIsoDate(filing.filingDate);
+        const disclosureDate = filedDate || parsedTrades[0].tradeDate;
         const district = formatDistrict(filing.stateDst);
 
         try {
@@ -532,6 +533,7 @@ async function run() {
                 ticker: parsedTrades[0].ticker,
                 transaction_type: disclosureTradeType,
                 trade_date: disclosureDate,
+                filed_date: filedDate,
                 amount_range: `$${Math.round(parsedTrades[0].amount).toLocaleString()} - $${Math.round(parsedTrades[0].amount).toLocaleString()}`,
                 sector: district || 'House PTR',
               },

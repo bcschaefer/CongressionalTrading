@@ -1,5 +1,5 @@
 import type { CongressmanGroup } from '@/lib/home-trades';
-import { formatDate, formatMoney, getTradeCountLabel } from '@/lib/home-trades';
+import { formatDate, formatMoney, getPublishDelayLabel, getTradeCountLabel } from '@/lib/home-trades';
 
 type ProlificTradersTableProps = {
   groups: CongressmanGroup[];
@@ -67,7 +67,21 @@ export default function ProlificTradersTable({
               )}
             </div>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-              <span>{formatDate(group.latestDate)}</span>
+              <span>Traded {formatDate(group.trades[0]?.date ?? group.latestDate)}</span>
+              <span>
+                Published{' '}
+                {group.trades[0]?.datePublished ? (
+                  <>
+                    {formatDate(group.trades[0].datePublished)}
+                    {(() => {
+                      const delay = getPublishDelayLabel(group.trades[0].date, group.trades[0].datePublished);
+                      return delay ? ` (${delay})` : '';
+                    })()}
+                  </>
+                ) : (
+                  '—'
+                )}
+              </span>
               <span>{getTradeCountLabel(group.trades.length)}</span>
               <span className="font-semibold text-gray-700">{formatMoney(group.totalAmount)}</span>
             </div>
@@ -79,11 +93,12 @@ export default function ProlificTradersTable({
         <table className="w-full table-fixed">
           <thead className="bg-linear-to-r from-gray-100 to-gray-200">
             <tr>
-              <th className="w-[8%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">#</th>
-              <th className="w-[34%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Congressman</th>
-              <th className="w-[22%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Recent Date</th>
-              <th className="w-[14%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Trades</th>
-              <th className="w-[22%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Total Amount</th>
+              <th className="w-[6%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">#</th>
+              <th className="w-[26%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Congressman</th>
+              <th className="w-[16%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Date Traded</th>
+              <th className="w-[20%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Date Published</th>
+              <th className="w-[12%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Trades</th>
+              <th className="w-[20%] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:py-4">Total Amount</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -124,7 +139,24 @@ export default function ProlificTradersTable({
                     )}
                   </div>
                 </td>
-                <td className="px-2 py-4 text-sm text-gray-500 text-center sm:px-4 sm:py-6">{formatDate(group.latestDate)}</td>
+                <td className="px-2 py-4 text-sm text-gray-500 text-center sm:px-4 sm:py-6">
+                  {formatDate(group.trades[0]?.date ?? group.latestDate)}
+                </td>
+                <td className="px-2 py-4 text-sm text-gray-500 text-center sm:px-4 sm:py-6">
+                  {group.trades[0]?.datePublished ? (
+                    <>
+                      {formatDate(group.trades[0].datePublished)}
+                      {(() => {
+                        const delay = getPublishDelayLabel(group.trades[0].date, group.trades[0].datePublished);
+                        return delay ? (
+                          <span className="ml-1 font-semibold text-gray-400">({delay})</span>
+                        ) : null;
+                      })()}
+                    </>
+                  ) : (
+                    '—'
+                  )}
+                </td>
                 <td className="px-2 py-4 text-sm text-gray-500 text-center sm:px-4 sm:py-6">{getTradeCountLabel(group.trades.length)}</td>
                 <td className="px-2 py-4 text-sm text-gray-500 text-center font-semibold sm:px-4 sm:py-6">{formatMoney(group.totalAmount)}</td>
               </tr>
