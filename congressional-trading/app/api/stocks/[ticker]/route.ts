@@ -10,6 +10,46 @@ import * as yahooFinance from 'yahoo-finance2';
 // per-request execution and let the Cache-Control header below handle CDN caching.
 export const dynamic = 'force-dynamic';
 
+// yahoo-finance2 v3's default export is a class — historical()/chart() must be called
+// on an instance, not the module namespace.
+const YahooFinanceCtor: any = (yahooFinance as any).default ?? (yahooFinance as any);
+const yf: any = new YahooFinanceCtor({ suppressNotices: ['ripHistorical'] });
+
+type PriceInterval = '1d' | '1wk' | '1mo';
+
+function pickInterval(spanDays: number): PriceInterval {
+  if (spanDays <= 400) return '1d';
+  if (spanDays <= 365 * 10) return '1wk';
+  return '1mo';
+}
+
+async function getHistoricalPriceSeries(
+  ticker: string,
+  startDate: Date,
+  endDate: Date,
+  interval: PriceInterval
+): Promise<{ date: string; close: number }[]> {
+  try {
+    const result = (await yf.historical(ticker, {
+      period1: startDate,
+      period2: endDate,
+      interval,
+    })) as any[];
+
+    if (!Array.isArray(result)) return [];
+
+    return result
+      .filter((candle) => candle.close != null)
+      .map((candle) => ({
+        date: new Date(candle.date as string).toISOString().slice(0, 10),
+        close: candle.close as number,
+      }));
+  } catch (error) {
+    console.error(`Failed to fetch price series for ${ticker}:`, error);
+    return [];
+  }
+}
+
 async function getHistoricalPrice(ticker: string, date: string): Promise<number | null> {
   try {
     const queryDate = new Date(`${date}T00:00:00`);
@@ -18,7 +58,6 @@ async function getHistoricalPrice(ticker: string, date: string): Promise<number 
     const endDate = new Date(queryDate);
     endDate.setDate(endDate.getDate() + 5); // Get 5 days after
 
-    const yf = (yahooFinance as any).default ?? (yahooFinance as any);
     const result = (await yf.historical(ticker, {
       period1: startDate,
       period2: endDate,
@@ -166,6 +205,37 @@ export async function GET(
 
     const members = Array.from(memberMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
 
+    // Fetch a continuous price series spanning all trades, for the chart's price line.
+    let priceHistory: { date: string; close: number }[] = [];
+    let priceInterval: PriceInterval | null = null;
+
+    const tradeDates = tradeRows.map((t: any) => t.trade_date).filter(Boolean) as string[];
+    if (tradeDates.length > 0) {
+      const sortedDates = [...tradeDates].sort();
+      const rangeStart = new Date(`${sortedDates[0]}T00:00:00`);
+      rangeStart.setDate(rangeStart.getDate() - 7);
+      const rangeEnd = new Date(`${sortedDates[sortedDates.length - 1]}T00:00:00`);
+      rangeEnd.setDate(rangeEnd.getDate() + 7);
+      const now = new Date();
+      if (rangeEnd.getTime() > now.getTime()) rangeEnd.setTime(now.getTime());
+
+      const spanDays = (rangeEnd.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24);
+      const interval = pickInterval(spanDays);
+      const seriesCacheKey = `${upperTicker}:${rangeStart.toISOString().slice(0, 10)}:${rangeEnd.toISOString().slice(0, 10)}:${interval}`;
+
+      const cached = await readLocalCache<{ date: string; close: number }[]>('yahoo-price-series-v1', seriesCacheKey);
+      if (cached) {
+        priceHistory = cached;
+        priceInterval = interval;
+      } else {
+        priceHistory = await getHistoricalPriceSeries(upperTicker, rangeStart, rangeEnd, interval);
+        priceInterval = interval;
+        if (priceHistory.length > 0) {
+          await writeLocalCache('yahoo-price-series-v1', seriesCacheKey, priceHistory, 86400);
+        }
+      }
+    }
+
     const totalAmount = tradeRows.reduce((s: number, t: any) => s + (t.amount ?? 0), 0);
     let buyAmount = 0;
     let sellAmount = 0;
@@ -176,7 +246,17 @@ export async function GET(
     }
 
     return NextResponse.json(
-      { ticker: upperTicker, totalAmount, buyAmount, sellAmount, tradeCount: tradeRows.length, trades, members },
+      {
+        ticker: upperTicker,
+        totalAmount,
+        buyAmount,
+        sellAmount,
+        tradeCount: tradeRows.length,
+        trades,
+        members,
+        priceHistory,
+        priceInterval,
+      },
       { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200' } }
     );
   } catch (error) {

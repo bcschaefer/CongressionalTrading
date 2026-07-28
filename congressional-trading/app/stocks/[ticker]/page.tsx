@@ -30,6 +30,8 @@ type MemberSummary = {
   tradeCount: number;
 };
 
+type PricePoint = { date: string; close: number };
+
 type StockDetail = {
   ticker: string;
   totalAmount: number;
@@ -38,6 +40,8 @@ type StockDetail = {
   tradeCount: number;
   trades: Trade[];
   members: MemberSummary[];
+  priceHistory: PricePoint[];
+  priceInterval: '1d' | '1wk' | '1mo' | null;
 };
 
 function formatMoney(amount: number) {
@@ -156,6 +160,14 @@ export default function StockDetailPage() {
       if (year < yearRange.start || year > yearRange.end) return false;
     }
     return true;
+  });
+
+  // The price line only respects the year-range filter — never the buy/sell filter,
+  // since price movement isn't a function of which trades the user chose to view.
+  const filteredPriceHistory = data.priceHistory.filter((p) => {
+    if (yearRange.start === null || yearRange.end === null) return true;
+    const year = new Date(`${p.date}T00:00:00`).getFullYear();
+    return year >= yearRange.start && year <= yearRange.end;
   });
 
   const statCard = (label: string, value: string, sub?: string, color?: string) => (
@@ -316,7 +328,12 @@ export default function StockDetailPage() {
         </div>
 
         {/* Price chart */}
-        <StockPriceChart trades={filteredTrades} />
+        <StockPriceChart
+          ticker={data.ticker}
+          priceHistory={filteredPriceHistory}
+          priceInterval={data.priceInterval}
+          trades={filteredTrades}
+        />
 
         {/* Members who traded */}
         <div>
