@@ -86,6 +86,8 @@ model members {
   full_name             String
   party                 String?
   chamber               String?
+  state                 String?
+  district              String?
   is_active             Boolean                @default(true)
   committee_memberships committee_memberships[]
   disclosures           disclosures[]

@@ -22,10 +22,11 @@ export async function GET() {
         full_name: true,
         party: true,
         chamber: true,
+        state: true,
         is_active: true,
         annual_disclosures: {
           orderBy: { filing_year: 'asc' },
-          select: { filing_year: true, state_district: true },
+          select: { filing_year: true },
         },
         net_worth_history: {
           orderBy: { year: 'desc' },
@@ -39,12 +40,6 @@ export async function GET() {
       const firstYear = years.length > 0 ? Math.min(...years) : null;
       const lastYear = years.length > 0 ? Math.max(...years) : null;
 
-      // State from most recent annual disclosure with a state_district
-      const stateDistrict = [...m.annual_disclosures]
-        .reverse()
-        .find((d) => d.state_district)?.state_district ?? null;
-      const state = stateDistrict ? stateDistrict.slice(0, 2) : null;
-
       const latestNetWorth = (m.net_worth_history as Array<{ net_worth: number | null }>)[0]?.net_worth ?? null;
 
       return {
@@ -53,7 +48,7 @@ export async function GET() {
         party: m.party,
         chamber: m.chamber,
         is_active: m.is_active,
-        state,
+        state: m.state,
         first_year: firstYear,
         last_year: lastYear,
         net_worth: latestNetWorth,

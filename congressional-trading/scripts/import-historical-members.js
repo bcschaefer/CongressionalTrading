@@ -67,13 +67,18 @@ function toLegislatorRow(leg, isActive) {
 
   if (!fullName) return null;
 
-  // Use the most recent term for party/chamber
+  // Use the most recent term for party/chamber/state — the annual financial
+  // disclosures don't carry a usable state for senators (null, or a generic
+  // "US-SENATE" placeholder), so this YAML dataset's per-term state/district
+  // is the only reliable source for it.
   const terms = Array.isArray(leg.terms) ? leg.terms : [];
   const lastTerm = terms[terms.length - 1] ?? {};
   const party = normalizeParty(lastTerm.party);
   const chamber = normalizeChamber(lastTerm.type);
+  const state = lastTerm.state ?? null;
+  const district = lastTerm.district != null ? String(lastTerm.district) : null;
 
-  return { bioguide, fullName, party, chamber, isActive };
+  return { bioguide, fullName, party, chamber, state, district, isActive };
 }
 
 function chunk(arr, size) {
@@ -94,18 +99,20 @@ async function upsertBatch(pgClient, rows) {
   if (rows.length === 0) return;
   const values = [];
   const tuples = rows.map((r, i) => {
-    const base = i * 5;
-    values.push(r.bioguide, r.fullName, r.party, r.chamber, r.isActive);
-    return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`;
+    const base = i * 7;
+    values.push(r.bioguide, r.fullName, r.party, r.chamber, r.state, r.district, r.isActive);
+    return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7})`;
   });
 
   const sql = `
-    INSERT INTO members (bioguide, full_name, party, chamber, is_active)
+    INSERT INTO members (bioguide, full_name, party, chamber, state, district, is_active)
     VALUES ${tuples.join(', ')}
     ON CONFLICT (bioguide) DO UPDATE SET
       full_name = EXCLUDED.full_name,
       party     = COALESCE(EXCLUDED.party, members.party),
       chamber   = COALESCE(EXCLUDED.chamber, members.chamber),
+      state     = COALESCE(EXCLUDED.state, members.state),
+      district  = COALESCE(EXCLUDED.district, members.district),
       is_active = EXCLUDED.is_active
   `;
   await pgClient.query(sql, values);
