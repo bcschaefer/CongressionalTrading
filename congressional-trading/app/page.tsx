@@ -49,6 +49,12 @@ function HeroBanner() {
             >
               Explore Stocks
             </Link>
+            <Link
+              href="/trades"
+              className="cursor-pointer rounded-sm border border-(--color-border) px-4 py-2 text-sm font-semibold text-foreground transition-all duration-150 hover:-translate-y-0.5 hover:border-(--color-accent) hover:text-(--color-accent) hover:shadow-sm"
+            >
+              View Recent Trades
+            </Link>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">

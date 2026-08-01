@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 type TradeResponse = {
@@ -43,8 +43,14 @@ function parseAmountRange(amountRange: string | null): number {
 // per-request execution and let the Cache-Control header below handle CDN caching.
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const limitParam = searchParams.get('limit');
+    const offsetParam = searchParams.get('offset');
+    const limit = limitParam ? Number.parseInt(limitParam, 10) : null;
+    const offset = offsetParam ? Number.parseInt(offsetParam, 10) : 0;
+
     const rows = await prisma.disclosures.findMany({
       orderBy: {
         id: 'desc',
@@ -107,9 +113,15 @@ export async function GET() {
       .map((trade: TradeResponse) => ({
         ...trade,
         datePublished: trade.datePublished && isSaneDate(trade.datePublished) ? trade.datePublished : null,
-      }));
+      }))
+      // Most recently traded first — `id desc` (insertion order) is only a rough
+      // proxy for that, so sort on the real trade date explicitly.
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id));
 
-    return NextResponse.json({ trades }, {
+    const total = trades.length;
+    const page = limit != null ? trades.slice(offset, offset + limit) : trades;
+
+    return NextResponse.json({ trades: page, total }, {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
     });
   } catch (error) {
