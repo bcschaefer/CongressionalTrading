@@ -85,28 +85,21 @@ export default function StockDetailPage() {
         const json = await r.json();
         if (!json || !Array.isArray(json.trades)) { setNotFound(true); setLoading(false); return; }
         setData(json);
-        setYearRange({ start: null, end: null });
+        // Derive the initial full year range from the same response instead of a
+        // second effect reacting to `data` — one fewer render, and avoids setState
+        // synchronously inside an effect body.
+        const years = Array.from(
+          new Set(
+            (json.trades as Trade[])
+              .filter((t) => t.trade_date)
+              .map((t) => new Date(`${t.trade_date}T00:00:00`).getFullYear())
+          )
+        ).sort((a, b) => a - b);
+        setYearRange(years.length > 0 ? { start: years[0], end: years[years.length - 1] } : { start: null, end: null });
         setLoading(false);
       })
       .catch(() => { setNotFound(true); setLoading(false); });
   }, [ticker]);
-
-  // Initialize full year range when data loads
-  useEffect(() => {
-    if (!data) return;
-    if (yearRange.start === null || yearRange.end === null) {
-      const years = Array.from(
-        new Set(
-          data.trades
-            .filter((t) => t.trade_date)
-            .map((t) => new Date(`${t.trade_date}T00:00:00`).getFullYear())
-        )
-      ).sort((a, b) => a - b);
-      if (years.length > 0) {
-        setYearRange({ start: years[0], end: years[years.length - 1] });
-      }
-    }
-  }, [data, yearRange.end, yearRange.start]);
 
   if (loading) {
     return (

@@ -40,14 +40,6 @@ export default function NetWorthDonutChart({
     .filter(([, v]) => v.total > 0)
     .sort((a, b) => b[1].total - a[1].total);
 
-  if (entries.length === 0) {
-    return (
-      <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '10px' }}>
-        No assets to display
-      </p>
-    );
-  }
-
   const total = entries.reduce((sum, [, v]) => sum + v.total, 0);
   const size = 260;
   const cx = size / 2;
@@ -55,7 +47,11 @@ export default function NetWorthDonutChart({
   const outerR = 104;
   const innerR = 60;
 
+  // Hooks must run unconditionally on every render, so this can't sit behind the
+  // entries.length===0 early return below — it just yields an empty array instead.
   const slices = useMemo(() => {
+    if (entries.length === 0) return [];
+
     const pie = d3
       .pie<[string, { total: number; count: number }]>()
       .value(([, value]) => value.total)
@@ -79,6 +75,14 @@ export default function NetWorthDonutChart({
       };
     });
   }, [entries, innerR, outerR, total]);
+
+  if (entries.length === 0) {
+    return (
+      <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '10px' }}>
+        No assets to display
+      </p>
+    );
+  }
 
   return (
     <div

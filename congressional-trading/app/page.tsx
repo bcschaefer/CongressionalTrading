@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import HomeTradeChartCard from './components/HomeTradeChartCard';
 import ProlificTradersTable from './components/ProlificTradersTable';
 import NetWorthLineChart, { type NetWorthHistoryPoint } from './components/NetWorthLineChart';
@@ -34,18 +35,18 @@ function HeroBanner() {
           We track every disclosed congressional trade, so you can see exactly what influences their laws.
         </p>
         <div className="mt-5 flex flex-wrap gap-2.5">
-          <a
+          <Link
             href="/representatives"
             className="cursor-pointer rounded-(--radius-sm) bg-(--color-accent) px-4 py-2 text-sm font-semibold text-white transition-all duration-150 hover:-translate-y-0.5 hover:bg-(--color-accent-hover) hover:shadow-md"
           >
             Browse Representatives
-          </a>
-          <a
+          </Link>
+          <Link
             href="/stocks"
             className="cursor-pointer rounded-(--radius-sm) border border-(--color-border) px-4 py-2 text-sm font-semibold text-(--color-text-primary) transition-all duration-150 hover:-translate-y-0.5 hover:border-(--color-accent) hover:text-(--color-accent) hover:shadow-sm"
           >
             Explore Stocks
-          </a>
+          </Link>
         </div>
 
         <div className="mt-6 flex flex-wrap gap-3">
@@ -221,12 +222,12 @@ export default function Hero() {
               <h2 className="text-xl font-bold text-foreground">
                 {sortMode === 'prolific' ? 'Most Prolific Traders' : 'Most Recent Traders'}
               </h2>
-              <a
+              <Link
                 href="/representatives"
                 className="group shrink-0 cursor-pointer text-sm font-medium text-(--color-accent) transition-colors hover:text-(--color-accent-hover)"
               >
                 See all <span className="inline-block transition-transform duration-150 group-hover:translate-x-0.5">→</span>
-              </a>
+              </Link>
             </div>
             <p className="mb-3 text-sm text-(--color-text-secondary)">
               {sortMode === 'prolific'

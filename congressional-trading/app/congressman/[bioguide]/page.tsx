@@ -282,7 +282,7 @@ export default function CongressmanPage() {
         )}
       </div>
     ),
-    [purchaseTrades, saleTrades, tradeView, netWorthHistory, historyLoading]
+    [purchaseTrades, saleTrades, tradeView]
   );
 
   if (loading) {
