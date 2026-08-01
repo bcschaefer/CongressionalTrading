@@ -305,36 +305,27 @@ export default function CongressmanPage() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-white">
-      {/* Header */}
-      <div className="px-4 pb-7 pt-6 md:px-10">
+      {/* Header — solid party-colored banner (blue/red/violet for Dem/Rep/Independent) */}
+      <div
+        className="px-4 pb-7 pt-6 text-white md:px-10"
+        style={{ backgroundColor: `var(${partyTokens(member.party).text})` }}
+      >
         <div className="mx-auto max-w-7xl">
-          <button onClick={() => router.back()} className="mb-5 inline-block cursor-pointer text-sm text-(--color-text-secondary) transition hover:text-foreground">
+          <button onClick={() => router.back()} className="mb-5 inline-block cursor-pointer text-sm text-white/75 transition hover:text-white">
             ← Back
           </button>
 
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:gap-6">
-            <Avatar name={member.full_name} party={member.party} photoUrl={photoUrl} size="lg" />
+            <Avatar name={member.full_name} party={member.party} photoUrl={photoUrl} size="portrait" ringVar="--color-bg" />
 
             {/* Info */}
             <div className="min-w-0">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">{member.full_name}</h1>
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-(--color-text-secondary)">
-                {member.party && (
-                  <span className="font-semibold" style={{ color: `var(${partyTokens(member.party).text})` }}>
-                    {partyLabel(member.party)}
-                  </span>
-                )}
-                {member.chamber && (
-                  <span
-                    className={`capitalize font-semibold ${
-                      member.chamber.toLowerCase() === 'senate' ? 'text-(--color-negative)' : 'text-(--color-accent)'
-                    }`}
-                  >
-                    {member.chamber}
-                  </span>
-                )}
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{member.full_name}</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/85">
+                {member.party && <span className="font-semibold">{partyLabel(member.party)}</span>}
+                {member.chamber && <span className="capitalize font-semibold">{member.chamber}</span>}
                 {member.district && <span>{member.district}</span>}
-                <span className="font-mono text-xs text-(--color-text-muted)">{bioguide}</span>
+                <span className="font-mono text-xs text-white/60">{bioguide}</span>
                 {member.termStart != null && (
                   <span>{member.termStart}–{member.is_active ? 'Present' : (member.termEnd ?? '?')}</span>
                 )}
