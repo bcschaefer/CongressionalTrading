@@ -7,6 +7,7 @@ import HomeTradeChartCard from './components/HomeTradeChartCard';
 import ProlificTradersTable from './components/ProlificTradersTable';
 import NetWorthLineChart, { type NetWorthHistoryPoint } from './components/NetWorthLineChart';
 import StatCard from './components/ui/StatCard';
+import GradientRule from './components/ui/GradientRule';
 import {
   getTradeDirection,
   groupTradesByCongressman,
@@ -26,35 +27,38 @@ const SITE_STATS = [
 
 function HeroBanner() {
   return (
-    <div className="border-b border-(--color-border) px-4 pb-8 pt-10 md:px-8">
-      <div className="mx-auto max-w-5xl">
-        <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
-          Your lawmakers are <span className="text-(--color-accent)">trading</span> <span className="text-(--color-negative)">stocks</span>.
-        </h1>
-        <p className="mt-3 max-w-xl text-base text-(--color-text-secondary)">
-          Members of Congress have to disclose their stock trades by law. We pull every filing and put it in one place.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-2.5">
-          <Link
-            href="/representatives"
-            className="cursor-pointer rounded-(--radius-sm) bg-(--color-accent) px-4 py-2 text-sm font-semibold text-white transition-all duration-150 hover:-translate-y-0.5 hover:bg-(--color-accent-hover) hover:shadow-md"
-          >
-            Browse Representatives
-          </Link>
-          <Link
-            href="/stocks"
-            className="cursor-pointer rounded-(--radius-sm) border border-(--color-border) px-4 py-2 text-sm font-semibold text-foreground transition-all duration-150 hover:-translate-y-0.5 hover:border-(--color-accent) hover:text-(--color-accent) hover:shadow-sm"
-          >
-            Explore Stocks
-          </Link>
-        </div>
+    <div>
+      <div className="px-4 pb-8 pt-10 md:px-8">
+        <div className="mx-auto max-w-5xl">
+          <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
+            Your lawmakers are <span className="text-(--color-accent)">trading</span> <span className="text-(--color-negative)">stocks</span>.
+          </h1>
+          <p className="mt-3 max-w-xl text-base text-(--color-text-secondary)">
+            Members of Congress have to disclose their stock trades by law. We pull every filing and put it in one place.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2.5">
+            <Link
+              href="/representatives"
+              className="cursor-pointer rounded-sm bg-(--color-accent) px-4 py-2 text-sm font-semibold text-white transition-all duration-150 hover:-translate-y-0.5 hover:bg-(--color-accent-hover) hover:shadow-md"
+            >
+              Browse Representatives
+            </Link>
+            <Link
+              href="/stocks"
+              className="cursor-pointer rounded-sm border border-(--color-border) px-4 py-2 text-sm font-semibold text-foreground transition-all duration-150 hover:-translate-y-0.5 hover:border-(--color-accent) hover:text-(--color-accent) hover:shadow-sm"
+            >
+              Explore Stocks
+            </Link>
+          </div>
 
-        <div className="mt-6 flex flex-wrap gap-3">
-          {SITE_STATS.map(({ label, value }) => (
-            <StatCard key={label} label={label} value={value} />
-          ))}
+          <div className="mt-6 flex flex-wrap gap-3">
+            {SITE_STATS.map(({ label, value }) => (
+              <StatCard key={label} label={label} value={value} />
+            ))}
+          </div>
         </div>
       </div>
+      <GradientRule />
     </div>
   );
 }
@@ -63,7 +67,7 @@ type DetailData = { totalAssets: number; totalLiabilities: number; netWorth: num
 
 function NetWorthDetailPanel({ year, data, loading }: { year: number; data: DetailData | null; loading: boolean }) {
   return (
-    <div className="mt-3 rounded-(--radius-sm) border border-(--color-border) bg-(--color-bg-subtle) p-3 text-[13px]">
+    <div className="mt-3 rounded-sm border border-(--color-border) bg-(--color-bg-subtle) p-3 text-[13px]">
       <div className="mb-1.5 font-bold text-foreground">{year} Breakdown</div>
       {loading ? (
         <div className="text-(--color-text-secondary)">Parsing PDF…</div>
@@ -234,7 +238,7 @@ export default function Hero() {
                 ? 'Ranked by trade count — hover to preview trades'
                 : 'Ranked by most recent disclosure — hover to preview trades'}
             </p>
-            <div className="mb-6 inline-flex rounded-(--radius-sm) border border-(--color-border)">
+            <div className="mb-6 inline-flex rounded-sm border border-(--color-border)">
               <button
                 type="button"
                 onClick={() => setSortMode('prolific')}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import GradientRule from '@/app/components/ui/GradientRule';
 
 type Stock = {
   ticker: string;
@@ -64,7 +65,7 @@ export default function StocksPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="border-b border-(--color-border) px-6 pb-6 pt-6">
+      <div className="px-6 pb-6 pt-6">
         <div className="mx-auto max-w-5xl">
           <Link href="/" className="mb-4 inline-block text-sm text-(--color-text-secondary) transition hover:text-foreground">
             ← Back to home
@@ -89,6 +90,7 @@ export default function StocksPage() {
           </div>
         </div>
       </div>
+      <GradientRule />
 
       {/* Filters + list */}
       <div className="mx-auto max-w-5xl px-6 py-6">

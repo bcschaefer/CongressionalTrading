@@ -6,6 +6,7 @@ import Link from 'next/link';
 import StockPriceChart from '@/app/components/StockPriceChart';
 import StatCard from '@/app/components/ui/StatCard';
 import Avatar from '@/app/components/ui/Avatar';
+import GradientRule from '@/app/components/ui/GradientRule';
 import { partyInitial } from '@/lib/party';
 
 type Trade = {
@@ -163,7 +164,7 @@ export default function StockDetailPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="border-b border-(--color-border) px-6 pb-6 pt-6">
+      <div className="px-6 pb-6 pt-6">
         <div className="mx-auto max-w-5xl">
           <Link href="/stocks" className="mb-4 inline-block text-sm text-(--color-text-secondary) transition hover:text-foreground">
             ← Back to Stocks
@@ -186,6 +187,7 @@ export default function StockDetailPage() {
           </div>
         </div>
       </div>
+      <GradientRule />
 
       <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6">
         {/* Stat cards */}

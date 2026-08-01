@@ -13,7 +13,7 @@ type StatCardProps = {
 export default function StatCard({ label, value, sub, valueColor, chip }: StatCardProps) {
   return (
     <div
-      className="min-w-0 flex-1 basis-55 rounded-(--radius-md) border border-(--color-border) border-t-2 bg-white px-5 py-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm"
+      className="min-w-0 flex-1 basis-55 rounded-md border border-(--color-border) border-t-2 bg-white px-5 py-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm"
       style={{ borderTopColor: valueColor ?? 'var(--color-accent)' }}
     >
       <div className="text-[11px] font-semibold uppercase tracking-wide text-(--color-text-muted)">{label}</div>
@@ -22,7 +22,7 @@ export default function StatCard({ label, value, sub, valueColor, chip }: StatCa
           {value}
         </span>
         {chip && (
-          <span className="rounded-(--radius-sm) bg-(--color-chip-bg) px-1.5 py-0.5 text-xs font-semibold text-(--color-chip-text)">
+          <span className="rounded-sm bg-(--color-chip-bg) px-1.5 py-0.5 text-xs font-semibold text-(--color-chip-text)">
             {chip}
           </span>
         )}

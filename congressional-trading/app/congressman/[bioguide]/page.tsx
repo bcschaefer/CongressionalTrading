@@ -11,6 +11,7 @@ import type { MemberTrade as ConflictMemberTrade } from '@/app/components/Potent
 import type { AnnualDisclosureItem } from '../../components/StockDisclosuresMenu';
 import Avatar from '@/app/components/ui/Avatar';
 import StatCard from '@/app/components/ui/StatCard';
+import GradientRule from '@/app/components/ui/GradientRule';
 import { partyLabel, partyTokens } from '@/lib/party';
 
 type MemberTrade = {
@@ -305,7 +306,7 @@ export default function CongressmanPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-white">
       {/* Header */}
-      <div className="border-b border-(--color-border) px-4 pb-7 pt-6 md:px-10">
+      <div className="px-4 pb-7 pt-6 md:px-10">
         <div className="mx-auto max-w-7xl">
           <button onClick={() => router.back()} className="mb-5 inline-block cursor-pointer text-sm text-(--color-text-secondary) transition hover:text-foreground">
             ← Back
@@ -352,6 +353,7 @@ export default function CongressmanPage() {
           </div>
         </div>
       </div>
+      <GradientRule />
 
       {/* Graphs */}
       <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 md:px-10 md:pb-14 md:pt-8">

@@ -134,7 +134,7 @@ export default function NavBar() {
 
   return (
     <>
-      <div className="h-1 bg-linear-to-r from-(--color-accent) to-(--color-negative)" />
+      <div className="h-1 bg-linear-to-r from-(--color-negative) to-(--color-accent)" />
       <header className="sticky top-0 z-50 border-b border-(--color-border) bg-white">
         <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
           <Link
@@ -185,12 +185,12 @@ export default function NavBar() {
                 }}
                 onKeyDown={onKeyDown}
                 placeholder="Search stock or representative"
-                className="w-full rounded-(--radius-sm) border border-(--color-border) bg-white px-3 py-1.5 text-sm text-foreground outline-none transition-all duration-150 placeholder:text-(--color-text-muted) focus:border-(--color-accent) focus:ring-2 focus:ring-(--color-accent)/15"
+                className="w-full rounded-sm border border-(--color-border) bg-white px-3 py-1.5 text-sm text-foreground outline-none transition-all duration-150 placeholder:text-(--color-text-muted) focus:border-(--color-accent) focus:ring-2 focus:ring-(--color-accent)/15"
                 aria-label="Search stock or representative"
               />
               <button
                 type="submit"
-                className="ml-1.5 inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-(--radius-sm) border border-(--color-border) text-(--color-text-secondary) transition-all duration-150 hover:border-(--color-accent) hover:text-(--color-accent)"
+                className="ml-1.5 inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-sm border border-(--color-border) text-(--color-text-secondary) transition-all duration-150 hover:border-(--color-accent) hover:text-(--color-accent)"
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
                   <path
@@ -204,7 +204,7 @@ export default function NavBar() {
 
             {isOpen && (
               <div
-                className="absolute left-0 right-0 top-[calc(100%+6px)] z-[70] overflow-hidden rounded-(--radius-sm) border border-(--color-border) bg-white"
+                className="absolute left-0 right-0 top-[calc(100%+6px)] z-[70] overflow-hidden rounded-sm border border-(--color-border) bg-white"
                 role="listbox"
                 aria-label="Search results"
               >
@@ -230,7 +230,7 @@ export default function NavBar() {
                       aria-selected={index === activeIndex}
                     >
                       <span
-                        className={`inline-flex min-w-11 shrink-0 items-center justify-center rounded-(--radius-sm) border px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${
+                        className={`inline-flex min-w-11 shrink-0 items-center justify-center rounded-sm border px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${
                           result.type === 'member'
                             ? 'border-(--color-accent) text-(--color-accent)'
                             : 'border-(--color-chip-text)/40 text-(--color-chip-text)'

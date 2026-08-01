@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import NavBar from "./components/NavBar";
+import GradientRule from "./components/ui/GradientRule";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
@@ -39,7 +40,8 @@ export default function RootLayout({
       >
         <NavBar />
         <main>{children}</main>
-        <footer className="border-t border-white/10 bg-(--color-ink) px-6 py-7">
+        <GradientRule />
+        <footer className="bg-(--color-ink) px-6 py-7">
           <div className="mx-auto max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
             <div>
               <p className="text-white font-black text-lg tracking-tight">InsideTrader</p>
