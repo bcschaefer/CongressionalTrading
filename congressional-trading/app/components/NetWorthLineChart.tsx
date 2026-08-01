@@ -62,14 +62,14 @@ export default function NetWorthLineChart({
       .append('line')
       .attr('x1', 0).attr('x2', iw)
       .attr('y1', (d) => yScale(d)).attr('y2', (d) => yScale(d))
-      .attr('stroke', '#e5e7eb').attr('stroke-dasharray', '3,3');
+      .attr('stroke', 'var(--color-border)');
 
     // Zero line (if visible)
     if (yMin < 0) {
       g.append('line')
         .attr('x1', 0).attr('x2', iw)
         .attr('y1', yScale(0)).attr('y2', yScale(0))
-        .attr('stroke', '#9ca3af').attr('stroke-width', 1.5);
+        .attr('stroke', 'var(--color-text-muted)').attr('stroke-width', 1.5);
     }
 
     // Axes
@@ -77,14 +77,14 @@ export default function NetWorthLineChart({
       .attr('transform', `translate(0,${ih})`)
       .call(d3.axisBottom(xScale).tickFormat((d) => String(d)))
       .selectAll('text')
-      .style('fill', '#374151')
+      .style('fill', 'var(--color-text-primary)')
       .style('font-size', '12px')
       .style('font-weight', '600');
 
     g.append('g')
       .call(d3.axisLeft(yScale).ticks(5).tickFormat((d) => formatMoney(Number(d))))
       .selectAll('text')
-      .style('fill', '#6b7280')
+      .style('fill', 'var(--color-text-muted)')
       .style('font-size', '11px');
 
     // Tooltip div
@@ -112,7 +112,7 @@ export default function NetWorthLineChart({
     g.append('path')
       .datum(data)
       .attr('fill', 'none')
-      .attr('stroke', '#3b82f6')
+      .attr('stroke', 'var(--color-accent)')
       .attr('stroke-width', 2.5)
       .attr('d', lineGen);
 
@@ -124,12 +124,12 @@ export default function NetWorthLineChart({
       .attr('cx', (d) => xScale(d.year) ?? 0)
       .attr('cy', (d) => yScale(d.netWorth))
       .attr('r', 5)
-      .attr('fill', '#3b82f6')
-      .attr('stroke', '#fff')
+      .attr('fill', 'var(--color-accent)')
+      .attr('stroke', 'var(--color-bg)')
       .attr('stroke-width', 1.5)
       .style('cursor', onYearClick ? 'pointer' : 'default')
       .on('mouseover', function (event, d) {
-        d3.select(this).attr('r', 7).attr('fill', '#2563eb');
+        d3.select(this).attr('r', 7).attr('fill', 'var(--color-accent-hover)');
         tooltip
           .style('opacity', '1')
           .html(
@@ -144,7 +144,7 @@ export default function NetWorthLineChart({
           .style('top', `${(event as MouseEvent).clientY - 8}px`);
       })
       .on('mouseleave', function () {
-        d3.select(this).attr('r', 5).attr('fill', '#3b82f6');
+        d3.select(this).attr('r', 5).attr('fill', 'var(--color-accent)');
         tooltip.style('opacity', '0');
       })
       .on('click', function (_event, d) {
@@ -158,8 +158,8 @@ export default function NetWorthLineChart({
     return (
       <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ width: '32px', height: '32px', border: '3px solid #e0e7ff', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
-          <p style={{ marginTop: '12px', fontSize: '13px', color: '#9ca3af' }}>Loading historical data…</p>
+          <div style={{ width: '32px', height: '32px', border: '3px solid var(--color-border)', borderTopColor: 'var(--color-accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+          <p style={{ marginTop: '12px', fontSize: '13px', color: 'var(--color-text-muted)' }}>Loading historical data…</p>
         </div>
       </div>
     );
@@ -168,7 +168,7 @@ export default function NetWorthLineChart({
   if (data.length === 0) {
     return (
       <div style={{ height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ fontSize: '14px', color: '#9ca3af' }}>{emptyMessage ?? 'No historical net worth data available.'}</p>
+        <p style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>{emptyMessage ?? 'No historical net worth data available.'}</p>
       </div>
     );
   }
@@ -177,14 +177,14 @@ export default function NetWorthLineChart({
     const [d] = data;
     return (
       <div style={{ textAlign: 'center', padding: '24px 0' }}>
-        <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '6px' }}>{d.year}</p>
-        <p style={{ fontSize: '28px', fontWeight: 800, color: '#1e3a8a' }}>
+        <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '6px' }}>{d.year}</p>
+        <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-accent)' }}>
           {formatMoney(d.netWorth)}
         </p>
         {onYearClick && (
           <button
             onClick={() => onYearClick(d.year)}
-            style={{ marginTop: '10px', fontSize: '12px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+            style={{ marginTop: '10px', fontSize: '12px', color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
           >
             View breakdown
           </button>

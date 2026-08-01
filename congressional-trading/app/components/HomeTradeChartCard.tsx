@@ -16,9 +16,9 @@ export default function HomeTradeChartCard({
 }: HomeTradeChartCardProps) {
   const isEmpty = purchaseTrades.length === 0 && saleTrades.length === 0;
   return (
-    <div className="bg-white p-4 rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+    <div className="overflow-hidden rounded-md border border-(--color-border) bg-white p-4">
       {isLoading || isEmpty ? (
-        <div className="flex min-h-80 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-sm font-semibold text-gray-500">
+        <div className="flex min-h-80 items-center justify-center rounded-sm border border-dashed border-(--color-border) bg-(--color-bg-subtle) text-sm font-semibold text-(--color-text-secondary)">
           {isLoading ? 'Loading chart data...' : 'Hover a trader to see their trades'}
         </div>
       ) : (
@@ -26,7 +26,7 @@ export default function HomeTradeChartCard({
           <TradeBarChart
             trades={purchaseTrades}
             saleTrades={saleTrades}
-            color="#10b981"
+            color="var(--color-positive)"
             emptyMessage={emptyMessage}
             groupByYear={true}
           />

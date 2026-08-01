@@ -127,6 +127,7 @@ model trades {
   id                Int                @id @default(autoincrement())
   disclosure_id     Int?
   ticker            String?
+  asset_name        String?
   trade_date        String?
   trade_type        String?
   amount            Float?

@@ -26,7 +26,15 @@ type MarkerPoint = {
   close: number;
   direction: 'buy' | 'sell' | 'other';
   amount: number;
-  jitter: number;
+};
+type MarkerCluster = {
+  direction: 'buy' | 'sell' | 'other';
+  px: number;
+  py: number;
+  count: number;
+  totalAmount: number;
+  minDate: Date;
+  maxDate: Date;
 };
 
 function tradeDirection(type: string | null): 'buy' | 'sell' | 'other' {
@@ -64,7 +72,7 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
     if (series.length === 0) return [];
     const bisectDate = d3.bisector<SeriesPoint, Date>((d) => d.date).left;
 
-    const raw = trades
+    return trades
       .filter((t) => t.trade_date)
       .map((t) => {
         const date = new Date(`${t.trade_date}T00:00:00`);
@@ -82,22 +90,6 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
         };
       })
       .sort((a, b) => a.date.getTime() - b.date.getTime());
-
-    const dayGroups = new Map<string, typeof raw>();
-    for (const point of raw) {
-      const key = point.date.toISOString().slice(0, 10);
-      const group = dayGroups.get(key) ?? [];
-      group.push(point);
-      dayGroups.set(key, group);
-    }
-
-    return raw.map((point) => {
-      const key = point.date.toISOString().slice(0, 10);
-      const group = dayGroups.get(key)!;
-      const idx = group.indexOf(point);
-      const center = (group.length - 1) / 2;
-      return { ...point, jitter: idx - center };
-    });
   }, [trades, series]);
 
   useLayoutEffect(() => {
@@ -150,21 +142,21 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
       .attr('x2', innerWidth)
       .attr('y1', (d) => y(d))
       .attr('y2', (d) => y(d))
-      .attr('stroke', '#e5e7eb')
+      .attr('stroke', 'var(--color-border)')
       .attr('stroke-width', 1);
 
     g.append('g')
       .attr('class', 'axis axis--y')
       .call(d3.axisLeft(y).ticks(5).tickFormat((d) => `$${Number(d).toFixed(0)}`))
       .selectAll('text')
-      .attr('fill', '#6b7280')
+      .attr('fill', 'var(--color-text-muted)')
       .attr('font-size', '12px');
 
     g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
       .call(d3.axisBottom(x).ticks(Math.min(6, series.length)).tickFormat((d) => formatAxisDate(d as Date)))
       .selectAll('text')
-      .attr('fill', '#6b7280')
+      .attr('fill', 'var(--color-text-muted)')
       .attr('font-size', '12px');
 
     // Price line
@@ -173,23 +165,31 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
       .x((d) => x(d.date))
       .y((d) => y(d.close));
 
-    g.append('path').datum(series).attr('fill', 'none').attr('stroke', '#2a78d6').attr('stroke-width', 2).attr('d', lineGen);
+    g.append('path').datum(series).attr('fill', 'none').attr('stroke', 'var(--color-accent)').attr('stroke-width', 2).attr('d', lineGen);
 
-    const JITTER_PX = 5;
-    const markerX = (d: MarkerPoint) => x(d.date) + d.jitter * JITTER_PX;
-    const markerColor = (d: MarkerPoint) => (d.direction === 'buy' ? '#10b981' : d.direction === 'sell' ? '#ef4444' : '#9ca3af');
+    const markerColor = (direction: 'buy' | 'sell' | 'other') =>
+      direction === 'buy' ? 'var(--color-positive)' : direction === 'sell' ? 'var(--color-negative)' : 'var(--color-text-muted)';
 
     const tooltip = d3.select(tooltipRef.current);
 
+    // Aggregate same-direction trades on a hovered date into one row (count + total)
+    // instead of a potentially very long list of individual trades.
     function renderTradeRows(items: MarkerPoint[]) {
-      return items
-        .map(
-          (m) =>
-            `<div style="display:flex;justify-content:space-between;gap:12px;margin-top:2px;">
-              <span style="color:${markerColor(m)};font-weight:600;">${m.direction === 'buy' ? 'Buy' : m.direction === 'sell' ? 'Sell' : 'Trade'}</span>
-              <span style="font-weight:700;">${formatMoney(m.amount)}</span>
-            </div>`
-        )
+      const byDirection = new Map<'buy' | 'sell' | 'other', { count: number; total: number }>();
+      for (const m of items) {
+        const entry = byDirection.get(m.direction) ?? { count: 0, total: 0 };
+        entry.count += 1;
+        entry.total += m.amount;
+        byDirection.set(m.direction, entry);
+      }
+      return Array.from(byDirection.entries())
+        .map(([direction, { count, total }]) => {
+          const label = direction === 'buy' ? 'Buy' : direction === 'sell' ? 'Sell' : 'Trade';
+          return `<div style="display:flex;justify-content:space-between;gap:12px;margin-top:2px;">
+              <span style="color:${markerColor(direction)};font-weight:600;">${label}${count > 1 ? ` ×${count}` : ''}</span>
+              <span style="font-weight:700;">${formatMoney(total)}</span>
+            </div>`;
+        })
         .join('');
     }
 
@@ -246,40 +246,119 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
         hideTooltip();
       });
 
+    // Cluster trades that land within a few pixels of each other (same direction) into a
+    // single density-scaled bubble instead of a pile of overlapping, unreadable dots — the
+    // visual weight (size) carries how many trades are represented, like a mini heatmap.
+    const PIXEL_BUCKET = 10;
+    type ClusterAccum = {
+      direction: 'buy' | 'sell' | 'other';
+      pxSum: number;
+      pySum: number;
+      count: number;
+      totalAmount: number;
+      minDate: Date;
+      maxDate: Date;
+    };
+    const clusterMap = new Map<string, ClusterAccum>();
+    for (const m of markers) {
+      const px = x(m.date);
+      const py = y(m.close);
+      const bucketKey = `${m.direction}:${Math.round(px / PIXEL_BUCKET)}`;
+      const existing = clusterMap.get(bucketKey);
+      if (existing) {
+        existing.pxSum += px;
+        existing.pySum += py;
+        existing.count += 1;
+        existing.totalAmount += m.amount;
+        if (m.date < existing.minDate) existing.minDate = m.date;
+        if (m.date > existing.maxDate) existing.maxDate = m.date;
+      } else {
+        clusterMap.set(bucketKey, {
+          direction: m.direction,
+          pxSum: px,
+          pySum: py,
+          count: 1,
+          totalAmount: m.amount,
+          minDate: m.date,
+          maxDate: m.date,
+        });
+      }
+    }
+
+    const clusters: MarkerCluster[] = Array.from(clusterMap.values()).map((c) => ({
+      direction: c.direction,
+      px: c.pxSum / c.count,
+      py: c.pySum / c.count,
+      count: c.count,
+      totalAmount: c.totalAmount,
+      minDate: c.minDate,
+      maxDate: c.maxDate,
+    }));
+
+    // Base dot is deliberately below the usual marker floor (r>=4) — with many trades on
+    // one line, small individual dots plus size-scaled clusters read far better than large
+    // dots that bury the price line underneath them.
+    const BASE_R = 3;
+    const MAX_R = 14;
+    // A fixed domain (not each chart's own max) so a 3-trade cluster always reads as
+    // "a few trades" and a 40-trade cluster always reads as "very dense", consistent
+    // across tickers — a per-chart-relative max would make the same count look tiny on
+    // a heavily-traded ticker and huge on a sparse one.
+    const CLUSTER_SCALE_MAX = 40;
+    const radiusScale = d3.scaleSqrt().domain([1, CLUSTER_SCALE_MAX]).range([BASE_R, MAX_R]).clamp(true);
+    const opacityScale = d3.scaleLinear().domain([1, CLUSTER_SCALE_MAX]).range([0.65, 1]).clamp(true);
+
+    function clusterTooltipHtml(c: MarkerCluster) {
+      const color = markerColor(c.direction);
+      const singularLabel = c.direction === 'buy' ? 'Purchase' : c.direction === 'sell' ? 'Sale' : 'Trade';
+      if (c.count === 1) {
+        return `<div style="font-weight:700;margin-bottom:4px;">${formatTooltipDate(c.minDate)}</div>
+          <div style="display:flex;justify-content:space-between;gap:12px;">
+            <span style="color:${color};font-weight:600;">${singularLabel}</span>
+            <span style="font-weight:700;">${formatMoney(c.totalAmount)}</span>
+          </div>`;
+      }
+      const dateRange =
+        c.minDate.getTime() === c.maxDate.getTime()
+          ? formatTooltipDate(c.minDate)
+          : `${formatTooltipDate(c.minDate)} – ${formatTooltipDate(c.maxDate)}`;
+      return `<div style="font-weight:700;margin-bottom:4px;">${dateRange}</div>
+        <div style="display:flex;justify-content:space-between;gap:12px;">
+          <span style="color:${color};font-weight:600;">${c.count} ${singularLabel.toLowerCase()}s</span>
+          <span style="font-weight:700;">${formatMoney(c.totalAmount)}</span>
+        </div>`;
+    }
+
     // Markers group is appended after the overlay rect so it paints on top and
     // can receive its own pointer/focus events instead of the overlay eating them.
     const markerG = g.append('g').attr('class', 'markers');
 
-    // Trade markers — hit target is bigger than the painted dot (>=24px).
+    // Trade markers — hit target is bigger than the painted dot (>=24px) regardless of
+    // how small the dot itself renders.
     const markerSel = markerG
-      .selectAll<SVGCircleElement, MarkerPoint>('.trade-hit')
-      .data(markers)
+      .selectAll<SVGCircleElement, MarkerCluster>('.trade-hit')
+      .data(clusters)
       .enter()
       .append('circle')
       .attr('class', 'trade-hit')
-      .attr('cx', markerX)
-      .attr('cy', (d) => y(d.close))
-      .attr('r', 12)
+      .attr('cx', (d) => d.px)
+      .attr('cy', (d) => d.py)
+      .attr('r', (d) => Math.max(12, radiusScale(d.count) + 6))
       .attr('fill', 'transparent')
-      .attr('tabindex', 0)
-      .attr('role', 'button')
-      .attr(
-        'aria-label',
-        (d) => `${d.direction === 'buy' ? 'Purchase' : d.direction === 'sell' ? 'Sale' : 'Trade'} on ${formatTooltipDate(d.date)}, ${formatMoney(d.amount)}`
-      )
-      .style('cursor', 'pointer')
-      .on('pointerenter focus', function (event, d) {
-        d3.select(this.previousSibling as SVGCircleElement | null).attr('r', 8);
-        const key = d.date.toISOString().slice(0, 10);
-        const dayMarkers = markers.filter((m) => m.date.toISOString().slice(0, 10) === key);
-        const clientPos = 'clientX' in event ? event : (this as SVGCircleElement).getBoundingClientRect();
-        const clientX = 'clientX' in event ? event.clientX : clientPos.left;
-        const clientY = 'clientY' in event ? event.clientY : clientPos.top;
-        crosshair.attr('x1', markerX(d)).attr('x2', markerX(d)).style('opacity', 1);
-        showTooltip(clientX, clientY, d.date, d.close, dayMarkers);
+      .on('pointerenter', function (event, d) {
+        d3.select(this.previousSibling as SVGCircleElement | null).attr('r', radiusScale(d.count) + 2);
+        const rect = (this as SVGCircleElement).getBoundingClientRect();
+        const clientX = 'clientX' in event ? event.clientX : rect.left;
+        const clientY = 'clientY' in event ? event.clientY : rect.top;
+        crosshair.attr('x1', d.px).attr('x2', d.px).style('opacity', 1);
+        tooltip
+          .style('opacity', '1')
+          .style('left', `${clientX + 14}px`)
+          .style('top', `${clientY - 10}px`)
+          .html(clusterTooltipHtml(d));
       })
-      .on('pointerleave blur', function () {
-        d3.select(this.previousSibling as SVGCircleElement | null).attr('r', 6);
+      .on('pointerleave', function (_event, d) {
+        d3.select(this.previousSibling as SVGCircleElement | null).attr('r', radiusScale(d.count));
         crosshair.style('opacity', 0);
         hideTooltip();
       });
@@ -291,21 +370,23 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
       parent
         .insert('circle', () => node.node())
         .attr('class', 'trade-dot')
-        .attr('cx', markerX(d))
-        .attr('cy', y(d.close))
-        .attr('r', 6)
-        .attr('fill', markerColor(d))
+        .attr('cx', d.px)
+        .attr('cy', d.py)
+        .attr('r', radiusScale(d.count))
+        .attr('fill', markerColor(d.direction))
+        .attr('fill-opacity', opacityScale(d.count))
         .attr('stroke', '#fff')
-        .attr('stroke-width', 2)
-        .style('pointer-events', 'none');
+        .attr('stroke-width', 1.5)
+        .style('pointer-events', 'none')
+        .style('transition', 'r 0.15s ease');
     });
   }, [series, markers, ticker]);
 
   if (series.length === 0) {
     return (
       <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '16px', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>Price History</h2>
-        <div style={{ color: '#9ca3af', textAlign: 'center', padding: '40px 20px', fontSize: '14px' }}>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>Price History</h2>
+        <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '40px 20px', fontSize: '14px' }}>
           No price data available for this range.
         </div>
       </div>
@@ -315,8 +396,8 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
   return (
     <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '16px', marginBottom: '24px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827' }}>Price History</h2>
-        <span style={{ fontSize: '12px', color: '#9ca3af' }}>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Price History</h2>
+        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
           {priceInterval ? intervalLabel[priceInterval] : ''} close price
         </span>
       </div>
@@ -324,16 +405,16 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
         <svg ref={svgRef} />
       </div>
       {markers.length === 0 && (
-        <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '12px', marginTop: '8px' }}>No trades match the current filter.</p>
+        <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px', marginTop: '8px' }}>No trades match the current filter.</p>
       )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 24px', marginTop: '16px', justifyContent: 'center', fontSize: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }} />
-          <span style={{ color: '#6b7280' }}>Purchases</span>
+          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-positive)' }} />
+          <span style={{ color: 'var(--color-text-secondary)' }}>Purchases</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }} />
-          <span style={{ color: '#6b7280' }}>Sales</span>
+          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-negative)' }} />
+          <span style={{ color: 'var(--color-text-secondary)' }}>Sales</span>
         </div>
       </div>
       <div

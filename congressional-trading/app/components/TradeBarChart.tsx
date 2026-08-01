@@ -7,9 +7,17 @@ import * as d3 from 'd3';
 type TradeLike = {
   id: number;
   ticker: string;
+  assetName?: string | null;
   amount: number;
   date?: string;
 };
+
+// Trades in private funds, bonds, or other non-public assets have no real ticker —
+// fall back to the disclosed asset name so they still show up as a distinct, labeled
+// group instead of disappearing or bucketing together under a blank/"N/A" key.
+function tickerGroupKey(t: TradeLike): string {
+  return t.ticker !== 'N/A' ? t.ticker : (t.assetName ?? 'Other Investment');
+}
 
 type TradeBarChartProps = {
   trades: TradeLike[];
@@ -42,8 +50,7 @@ export default function TradeBarChart({
   const groupedData = useMemo(() => {
     if (saleTrades === undefined) return null;
 
-    const keyOf = (t: TradeLike) =>
-      groupByYear ? String(new Date(t.date ?? '').getFullYear()) : t.ticker;
+    const keyOf = (t: TradeLike) => (groupByYear ? String(new Date(t.date ?? '').getFullYear()) : tickerGroupKey(t));
 
     const purchaseByKey = new Map<string, number>();
     for (const t of trades) {
@@ -77,7 +84,8 @@ export default function TradeBarChart({
     }
     const grouped = new Map<string, number>();
     for (const t of trades) {
-      grouped.set(t.ticker, (grouped.get(t.ticker) ?? 0) + t.amount);
+      const k = tickerGroupKey(t);
+      grouped.set(k, (grouped.get(k) ?? 0) + t.amount);
     }
     return [...grouped.entries()]
       .map(([ticker, amount]) => ({ key: ticker, label: ticker, amount }))
@@ -107,7 +115,7 @@ export default function TradeBarChart({
       svg.attr('width', width).attr('height', height);
 
       if (allTickers.length === 0) {
-        svg.append('text').attr('x', width / 2).attr('y', height / 2).attr('text-anchor', 'middle').attr('fill', '#6b7280').attr('font-size', '14px').text(emptyMessage);
+        svg.append('text').attr('x', width / 2).attr('y', height / 2).attr('text-anchor', 'middle').attr('fill', 'var(--color-text-muted)').attr('font-size', '14px').text(emptyMessage);
         return;
       }
 
@@ -124,7 +132,7 @@ export default function TradeBarChart({
       const yAxis = g.append('g').call(
         d3.axisLeft(y).ticks(5).tickFormat((v) => formatTick(Number(v)))
       );
-      yAxis.selectAll('text').attr('fill', '#000000');
+      yAxis.selectAll('text').attr('fill', 'var(--color-text-primary)');
 
       // Grid lines
       g.selectAll('.grid-line')
@@ -134,7 +142,7 @@ export default function TradeBarChart({
         .attr('class', 'grid-line')
         .attr('x1', 0).attr('x2', innerWidth)
         .attr('y1', (d) => y(d)).attr('y2', (d) => y(d))
-        .attr('stroke', '#e5e7eb').attr('stroke-width', 1).attr('stroke-dasharray', '2,2');
+        .attr('stroke', 'var(--color-border)').attr('stroke-width', 1);
 
       // X axis (ticker labels centered under each group)
       g.append('g')
@@ -143,7 +151,7 @@ export default function TradeBarChart({
         .selectAll('text')
         .attr('transform', 'rotate(-35)')
         .style('text-anchor', 'end')
-        .style('fill', '#111827')
+        .style('fill', 'var(--color-text-primary)')
         .style('font-weight', '600');
 
       // Purchase bars (green)
@@ -157,7 +165,7 @@ export default function TradeBarChart({
         .attr('y', (d) => y(purchaseByTicker.get(d)!))
         .attr('width', x1.bandwidth())
         .attr('height', (d) => innerHeight - y(purchaseByTicker.get(d)!))
-        .attr('fill', '#10b981')
+        .attr('fill', 'var(--color-positive)')
         .attr('rx', 3)
         .attr('cursor', groupedData?.yearMode ? 'default' : 'pointer')
         .on('click', (_e, d) => { if (!groupedData?.yearMode) router.push(`/stocks/${d}`); });
@@ -173,17 +181,17 @@ export default function TradeBarChart({
         .attr('y', (d) => y(saleByTicker.get(d)!))
         .attr('width', x1.bandwidth())
         .attr('height', (d) => innerHeight - y(saleByTicker.get(d)!))
-        .attr('fill', '#ef4444')
+        .attr('fill', 'var(--color-negative)')
         .attr('rx', 3)
         .attr('cursor', groupedData?.yearMode ? 'default' : 'pointer')
         .on('click', (_e, d) => { if (!groupedData?.yearMode) router.push(`/stocks/${d}`); });
 
       // Legend
       const legend = svg.append('g').attr('transform', `translate(${margin.left}, 8)`);
-      legend.append('rect').attr('width', 12).attr('height', 12).attr('fill', '#10b981').attr('rx', 2);
-      legend.append('text').attr('x', 16).attr('y', 10).text('Purchase').attr('font-size', '11px').attr('fill', '#374151').attr('font-weight', '600');
-      legend.append('rect').attr('x', 86).attr('width', 12).attr('height', 12).attr('fill', '#ef4444').attr('rx', 2);
-      legend.append('text').attr('x', 102).attr('y', 10).text('Sale').attr('font-size', '11px').attr('fill', '#374151').attr('font-weight', '600');
+      legend.append('rect').attr('width', 12).attr('height', 12).attr('fill', 'var(--color-positive)').attr('rx', 2);
+      legend.append('text').attr('x', 16).attr('y', 10).text('Purchase').attr('font-size', '11px').attr('fill', 'var(--color-text-secondary)').attr('font-weight', '600');
+      legend.append('rect').attr('x', 86).attr('width', 12).attr('height', 12).attr('fill', 'var(--color-negative)').attr('rx', 2);
+      legend.append('text').attr('x', 102).attr('y', 10).text('Sale').attr('font-size', '11px').attr('fill', 'var(--color-text-secondary)').attr('font-weight', '600');
 
       return;
     }
@@ -205,7 +213,7 @@ export default function TradeBarChart({
         .attr('x', width / 2)
         .attr('y', height / 2)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#6b7280')
+        .attr('fill', 'var(--color-text-muted)')
         .attr('font-size', '14px')
         .text(emptyMessage);
       return;
@@ -230,7 +238,7 @@ export default function TradeBarChart({
         .tickFormat((v) => formatTick(Number(v)))
     );
 
-    yAxis.selectAll('text').attr('fill', '#000000');
+    yAxis.selectAll('text').attr('fill', 'var(--color-text-primary)');
 
     g.append('g')
       .attr('class', 'axis axis--x')
@@ -242,7 +250,7 @@ export default function TradeBarChart({
       .selectAll('text')
       .attr('transform', 'rotate(-35)')
       .style('text-anchor', 'end')
-      .style('fill', '#111827')
+      .style('fill', 'var(--color-text-primary)')
       .style('font-weight', '600');
 
     g.selectAll('.grid-line')
@@ -254,9 +262,8 @@ export default function TradeBarChart({
       .attr('x2', innerWidth)
       .attr('y1', (d) => y(d))
       .attr('y2', (d) => y(d))
-      .attr('stroke', '#e5e7eb')
-      .attr('stroke-width', 1)
-      .attr('stroke-dasharray', '2,2');
+      .attr('stroke', 'var(--color-border)')
+      .attr('stroke-width', 1);
 
     g.selectAll('.bar')
       .data(series)
@@ -272,7 +279,9 @@ export default function TradeBarChart({
       .attr('cursor', 'pointer')
       .on('click', (_event, d) => {
         const ticker = d.label;
-        if (ticker) router.push(`/stocks/${ticker}`);
+        // Non-ticker asset labels ("Other Investment", "Multi-Pack Solutions LLC") have no
+        // stock page — only navigate for something that actually looks like a ticker.
+        if (ticker && /^[A-Z0-9.]{1,10}$/.test(ticker)) router.push(`/stocks/${ticker}`);
       });
 
     g.selectAll('.label')
@@ -283,7 +292,7 @@ export default function TradeBarChart({
       .attr('x', (d) => (x(d.key) ?? 0) + x.bandwidth() / 2)
       .attr('y', (d) => y(d.amount) - 6)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#374151')
+      .attr('fill', 'var(--color-text-secondary)')
       .attr('font-size', '10px')
       .attr('font-weight', 'bold')
       .text((d) => formatTick(d.amount));

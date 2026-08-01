@@ -9,15 +9,15 @@ export type VoteRecord = {
   chamber: string;
 };
 
-function normalizeVote(raw: string): { label: string; color: string; bg: string } {
+function normalizeVote(raw: string): { label: string; textVar: string; bgVar: string } {
   const v = raw?.toLowerCase().trim();
   if (v === 'yea' || v === 'aye' || v === 'yes') {
-    return { label: 'Yes', color: '#16a34a', bg: '#f0fdf4' };
+    return { label: 'Yes', textVar: '--color-positive', bgVar: '--color-positive-bg' };
   }
   if (v === 'nay' || v === 'no') {
-    return { label: 'No', color: '#dc2626', bg: '#fef2f2' };
+    return { label: 'No', textVar: '--color-negative', bgVar: '--color-negative-bg' };
   }
-  return { label: 'Abstained', color: '#9ca3af', bg: '#f9fafb' };
+  return { label: 'Abstained', textVar: '--color-text-muted', bgVar: '--color-bg-subtle' };
 }
 
 type Props = {
@@ -28,85 +28,52 @@ type Props = {
 
 export default function VotingHistoryTable({ votes, isLoading, error }: Props) {
   return (
-    <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-      <div style={{ padding: '24px 24px 8px' }}>
-        <h2
-          style={{
-            fontSize: 'clamp(1.4rem, 5vw, 2rem)',
-            fontWeight: 800,
-            color: '#1f2937',
-            marginBottom: '4px',
-            textAlign: 'center',
-          }}
-        >
-          Voting History
-        </h2>
-        <p style={{ textAlign: 'center', fontSize: '13px', color: '#9ca3af', marginBottom: '16px' }}>
-          Recent votes cast in Congress
-        </p>
+    <div className="overflow-hidden rounded-md border border-(--color-border) bg-white">
+      <div className="px-6 pb-2 pt-6">
+        <h2 className="mb-1 text-lg font-bold text-(--color-text-primary)">Voting History</h2>
+        <p className="mb-4 text-[13px] text-(--color-text-muted)">Recent votes cast in Congress</p>
       </div>
 
       {isLoading ? (
-        <div style={{ padding: '48px', textAlign: 'center' }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              border: '3px solid #e0e7ff',
-              borderTopColor: '#3b82f6',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-              margin: '0 auto',
-            }}
-          />
-          <p style={{ marginTop: '12px', fontSize: '13px', color: '#9ca3af' }}>Loading votes…</p>
+        <div className="p-12 text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-[3px] border-(--color-border) border-t-(--color-accent)" />
+          <p className="mt-3 text-[13px] text-(--color-text-muted)">Loading votes…</p>
         </div>
       ) : error && votes.length === 0 ? (
-        <div style={{ padding: '48px', textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', color: '#9ca3af' }}>{error}</p>
+        <div className="p-12 text-center">
+          <p className="text-sm text-(--color-text-muted)">{error}</p>
         </div>
       ) : votes.length === 0 ? (
-        <div style={{ padding: '48px', textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', color: '#9ca3af' }}>No voting records found.</p>
+        <div className="p-12 text-center">
+          <p className="text-sm text-(--color-text-muted)">No voting records found.</p>
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '520px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-            <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
-                <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bill / Question</th>
-                <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Vote</th>
+        <div className="max-h-[520px] overflow-auto">
+          <table className="w-full border-collapse text-[13px]">
+            <thead className="sticky top-0 z-[1] bg-(--color-bg-subtle)">
+              <tr className="border-b border-(--color-border)">
+                <th className="whitespace-nowrap px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-(--color-text-muted)">Date</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-(--color-text-muted)">Bill / Question</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-(--color-text-muted)">Vote</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-(--color-border)">
               {votes.map((v, i) => {
-                const { label, color, bg } = normalizeVote(v.memberVoted);
+                const { label, textVar, bgVar } = normalizeVote(v.memberVoted);
                 const dateStr = v.date
                   ? new Date(v.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                   : '—';
                 return (
-                  <tr
-                    key={`${v.date}-${i}`}
-                    style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}
-                  >
-                    <td style={{ padding: '10px 16px', color: '#6b7280', whiteSpace: 'nowrap', verticalAlign: 'top' }}>{dateStr}</td>
-                    <td style={{ padding: '10px 16px', color: '#1f2937', maxWidth: '520px', lineHeight: 1.5, verticalAlign: 'top' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '2px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{v.question}</div>
-                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>{v.description}</div>
+                  <tr key={`${v.date}-${i}`} className="transition-colors duration-150 hover:bg-(--color-bg-subtle)">
+                    <td className="whitespace-nowrap px-4 py-2.5 align-top text-(--color-text-secondary)">{dateStr}</td>
+                    <td className="max-w-[520px] px-4 py-2.5 align-top leading-normal text-(--color-text-primary)">
+                      <div className="mb-0.5 line-clamp-2 font-semibold">{v.question}</div>
+                      <div className="text-[11px] text-(--color-text-muted)">{v.description}</div>
                     </td>
-                    <td style={{ padding: '10px 16px', textAlign: 'center', verticalAlign: 'top' }}>
+                    <td className="px-4 py-2.5 text-right align-top">
                       <span
-                        style={{
-                          display: 'inline-block',
-                          padding: '3px 10px',
-                          borderRadius: '9999px',
-                          background: bg,
-                          color,
-                          fontWeight: 700,
-                          fontSize: '12px',
-                          whiteSpace: 'nowrap',
-                        }}
+                        className="inline-block whitespace-nowrap rounded-sm px-2.5 py-0.5 text-xs font-bold"
+                        style={{ background: `var(${bgVar})`, color: `var(${textVar})` }}
                       >
                         {label}
                       </span>

@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import FilterDropdown from '@/app/components/FilterDropdown';
+import Avatar from '@/app/components/ui/Avatar';
+import { partyLabel, partyTokens } from '@/lib/party';
 
 type Member = {
   bioguide: string;
@@ -18,21 +20,6 @@ type Member = {
 };
 
 type SortKey = 'full_name' | 'chamber' | 'party' | 'state' | 'first_year' | 'last_year' | 'net_worth';
-
-function partyLabel(party: string | null): string {
-  const p = (party ?? '').trim().toUpperCase();
-  if (p === 'D' || p.startsWith('DEM')) return 'Democrat';
-  if (p === 'R' || p.startsWith('REP')) return 'Republican';
-  if (p === 'I' || p.startsWith('IND')) return 'Independent';
-  return party ?? 'Unknown';
-}
-
-function partyColor(party: string | null): string {
-  const p = (party ?? '').trim().toUpperCase();
-  if (p === 'D' || p.startsWith('DEM')) return '#1d4ed8';
-  if (p === 'R' || p.startsWith('REP')) return '#b91c1c';
-  return '#6b7280';
-}
 
 function chamberLabel(chamber: string | null): string {
   const c = (chamber ?? '').trim().toLowerCase();
@@ -51,8 +38,8 @@ function formatNetWorth(n: number | null): string {
 // ─── Sort helpers ─────────────────────────────────────────────────────────────
 
 function SortIcon({ columnKey, sortKey, sortDir }: { columnKey: SortKey; sortKey: SortKey; sortDir: 'asc' | 'desc' }) {
-  if (sortKey !== columnKey) return <span className="ml-1 text-slate-300">↕</span>;
-  return <span className="ml-1 text-indigo-500">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  if (sortKey !== columnKey) return <span className="ml-1 text-(--color-text-muted)">↕</span>;
+  return <span className="ml-1 text-(--color-accent)">{sortDir === 'asc' ? '↑' : '↓'}</span>;
 }
 
 type ThProps = {
@@ -68,7 +55,7 @@ function Th({ columnKey, label, align = 'left', sortKey, sortDir, onSort }: ThPr
   return (
     <th
       onClick={() => onSort(columnKey)}
-      className={`cursor-pointer select-none whitespace-nowrap border-b border-slate-200 bg-slate-50 px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wide ${sortKey === columnKey ? 'text-indigo-500' : 'text-slate-500'}`}
+      className={`cursor-pointer select-none whitespace-nowrap border-b border-(--color-border) bg-(--color-bg-subtle) px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wide ${sortKey === columnKey ? 'text-(--color-accent)' : 'text-(--color-text-muted)'}`}
       style={{ textAlign: align }}
     >
       {label}<SortIcon columnKey={columnKey} sortKey={sortKey} sortDir={sortDir} />
@@ -156,36 +143,29 @@ export default function RepresentativesPage() {
   const thProps = { sortKey, sortDir, onSort: handleSort };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div
-        className="text-white"
-        style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #7c3aed 100%)', paddingBottom: '32px' }}
-      >
-        <div className="mx-auto max-w-6xl px-6" style={{ paddingTop: '24px' }}>
-          <Link href="/" className="inline-block text-sm text-white/70 hover:text-white mb-5 transition">
+      <div className="border-b border-(--color-border) px-6 pb-6 pt-6">
+        <div className="mx-auto max-w-6xl">
+          <Link href="/" className="mb-4 inline-block text-sm text-(--color-text-secondary) transition hover:text-(--color-text-primary)">
             ← Back to home
           </Link>
-          <div className="flex items-end justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Members of Congress</h1>
-              <p className="mt-2 text-white/75 text-base max-w-xl">
-                Every member of Congress must disclose their stock trades. We make it easy to see who&rsquo;s betting big.
-              </p>
-              <p className="mt-1 text-white/50 text-sm">
-                {loading ? '…' : `${activeCount} currently active · ${members.length} total`}
-              </p>
-            </div>
-          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-(--color-text-primary) sm:text-3xl">Members of Congress</h1>
+          <p className="mt-2 max-w-xl text-sm text-(--color-text-secondary)">
+            Every member of Congress must disclose their stock trades. We make it easy to see who&rsquo;s betting big.
+          </p>
+          <p className="mt-1 text-xs text-(--color-text-muted)">
+            {loading ? '…' : `${activeCount} currently active · ${members.length} total`}
+          </p>
 
           {/* Search bar */}
-          <div className="mt-6">
+          <div className="mt-5">
             <input
               type="text"
               placeholder="Search members…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full max-w-120 rounded-xl border-none bg-white/15 px-4 py-2.5 text-[14px] text-white outline-none placeholder:text-white/50 focus:bg-white/25 box-border"
+              className="w-full max-w-xs rounded-sm border border-(--color-border) px-3.5 py-2 text-sm text-(--color-text-primary) outline-none placeholder:text-(--color-text-muted) focus:border-(--color-accent)"
             />
           </div>
         </div>
@@ -225,23 +205,23 @@ export default function RepresentativesPage() {
               { value: 'I', label: 'Independent' },
             ]}
           />
-          <span className="ml-0 self-end pb-1.5 text-xs text-gray-400 sm:ml-auto">
+          <span className="ml-0 self-end pb-1.5 text-xs text-(--color-text-muted) sm:ml-auto">
             {filtered.length} result{filtered.length !== 1 ? 's' : ''}
           </span>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-24">
-            <p className="text-gray-400">Loading…</p>
+            <p className="text-(--color-text-muted)">Loading…</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center text-sm text-gray-400">
+          <div className="rounded-md border border-(--color-border) bg-white p-12 text-center text-sm text-(--color-text-muted)">
             No results found.
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-hidden rounded-md border border-(--color-border) bg-white">
             <div className="overflow-x-auto">
-              <table className="w-full" style={{ borderCollapse: 'collapse', minWidth: '700px' }}>
+              <table className="w-full min-w-[700px] border-collapse">
                 <thead>
                   <tr>
                     <Th columnKey="full_name" label="Name" {...thProps} />
@@ -253,51 +233,50 @@ export default function RepresentativesPage() {
                     <Th columnKey="last_year" label="Last Filing" align="center" {...thProps} />
                   </tr>
                 </thead>
-                <tbody>
-                  {filtered.map((m, index) => {
-                    const partyTextColor = partyColor(m.party);
+                <tbody className="divide-y divide-(--color-border)">
+                  {filtered.map((m) => {
+                    const partyTextVar = partyTokens(m.party).text;
                     return (
                       <tr
                         key={m.bioguide}
                         onClick={() => router.push(`/congressman/${m.bioguide}`)}
                         onMouseEnter={() => { setHoveredBioguide(m.bioguide); router.prefetch(`/congressman/${m.bioguide}`); }}
                         onMouseLeave={() => setHoveredBioguide(null)}
-                        className="cursor-pointer transition-colors duration-100"
-                        style={{ background: hoveredBioguide === m.bioguide ? '#eff6ff' : index % 2 === 0 ? '#fff' : '#f8fafc' }}
+                        className={`cursor-pointer transition-colors duration-150 ${hoveredBioguide === m.bioguide ? 'bg-(--color-bg-subtle)' : 'bg-white'}`}
                       >
                         <td className="whitespace-nowrap px-3.5 py-2.5 text-[14px]">
-                          <div className="flex items-center gap-2">
-                            {m.is_active && (
-                              <span className="h-1.75 w-1.75 shrink-0 rounded-full bg-green-600" />
-                            )}
-                            <span className={`font-semibold ${m.is_active ? 'text-gray-900' : 'text-gray-400'}`}>{m.full_name}</span>
+                          <div className="flex items-center gap-2.5">
+                            <Avatar name={m.full_name} party={m.party} size="sm" />
+                            <span className={`font-semibold ${m.is_active ? 'text-(--color-text-primary)' : 'text-(--color-text-muted)'}`}>{m.full_name}</span>
                           </div>
                         </td>
-                        <td className="whitespace-nowrap px-3.5 py-2.5 text-center text-[13px]">
-                          {m.chamber ? (
-                            <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                              m.chamber.toLowerCase() === 'senate'
-                                ? 'bg-purple-100 text-purple-700'
-                                : 'bg-green-100 text-green-700'
-                            }`}>{chamberLabel(m.chamber)}</span>
-                          ) : '—'}
+                        <td
+                          className={`whitespace-nowrap px-3.5 py-2.5 text-center text-[13px] font-semibold ${
+                            (m.chamber ?? '').toLowerCase() === 'senate'
+                              ? 'text-(--color-negative)'
+                              : (m.chamber ?? '').toLowerCase() === 'house'
+                                ? 'text-(--color-accent)'
+                                : 'text-(--color-text-muted)'
+                          }`}
+                        >
+                          {m.chamber ? chamberLabel(m.chamber) : '—'}
                         </td>
-                        <td className="whitespace-nowrap px-3.5 py-2.5 text-center text-[13px] font-semibold" style={{ color: partyTextColor }}>
+                        <td className="whitespace-nowrap px-3.5 py-2.5 text-center text-[13px] font-semibold" style={{ color: `var(${partyTextVar})` }}>
                           {m.party ? partyLabel(m.party) : '—'}
                         </td>
-                        <td className="px-3.5 py-2.5 text-center text-[13px] font-semibold text-gray-700">
+                        <td className="px-3.5 py-2.5 text-center text-[13px] font-semibold text-(--color-text-secondary)">
                           {m.state ?? '—'}
                         </td>
                         <td className={`whitespace-nowrap px-3.5 py-2.5 text-right text-[13px] font-bold ${
-                          m.net_worth && m.net_worth > 0 ? 'text-green-700' : 'text-gray-400'
+                          m.net_worth && m.net_worth > 0 ? 'text-(--color-positive)' : 'text-(--color-text-muted)'
                         }`}>
                           {formatNetWorth(m.net_worth)}
                         </td>
-                        <td className="px-3.5 py-2.5 text-center text-[13px] text-gray-500">
+                        <td className="px-3.5 py-2.5 text-center text-[13px] text-(--color-text-secondary)">
                           {m.first_year ?? '—'}
                         </td>
                         <td className={`px-3.5 py-2.5 text-center text-[13px] ${
-                          m.is_active ? 'font-semibold text-green-700' : 'text-gray-500'
+                          m.is_active ? 'font-semibold text-(--color-positive)' : 'text-(--color-text-secondary)'
                         }`}>
                           {m.is_active ? 'Active' : (m.last_year ?? '—')}
                         </td>

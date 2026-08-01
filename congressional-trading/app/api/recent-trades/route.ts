@@ -9,6 +9,7 @@ type TradeResponse = {
   type: string;
   amount: number;
   ticker: string;
+  assetName: string | null;
   date: string;
   datePublished: string | null;
   description: string;
@@ -68,6 +69,7 @@ export async function GET() {
             type: (row.transaction_type ?? 'UNKNOWN').toUpperCase(),
             amount: parseAmountRange(row.amount_range),
             ticker: row.ticker ?? 'N/A',
+            assetName: null,
             date: row.trade_date ?? '',
             datePublished: row.filed_date ?? null,
             description: row.sector ? `${row.sector} disclosure` : 'Disclosure filing',
@@ -83,6 +85,7 @@ export async function GET() {
         type: (trade.trade_type ?? row.transaction_type ?? 'UNKNOWN').toUpperCase(),
         amount: trade.amount ?? parseAmountRange(row.amount_range),
         ticker: trade.ticker ?? row.ticker ?? 'N/A',
+        assetName: trade.asset_name ?? null,
         date: trade.trade_date ?? row.trade_date ?? '',
         datePublished: row.filed_date ?? null,
         description: row.sector ? `${row.sector} disclosure` : 'Disclosure filing',
@@ -94,7 +97,10 @@ export async function GET() {
     const isSaneDate = (date: string) => date >= '2000-01-01' && date <= todayIso;
 
     const trades = allTrades
-      .filter((trade: TradeResponse) => trade.ticker !== 'N/A' && trade.amount > 0 && isSaneDate(trade.date))
+      .filter(
+        (trade: TradeResponse) =>
+          (trade.ticker !== 'N/A' || trade.assetName) && trade.amount > 0 && isSaneDate(trade.date)
+      )
       .map((trade: TradeResponse) => ({
         ...trade,
         datePublished: trade.datePublished && isSaneDate(trade.datePublished) ? trade.datePublished : null,

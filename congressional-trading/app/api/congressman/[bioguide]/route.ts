@@ -151,6 +151,7 @@ export async function GET(
       type: string;
       amount: number;
       ticker: string;
+      assetName: string | null;
       date: string;
       sector: string;
     };
@@ -164,6 +165,7 @@ export async function GET(
             type: (row.transaction_type ?? 'UNKNOWN').toUpperCase(),
             amount: parseAmountRange(row.amount_range),
             ticker: row.ticker ?? 'N/A',
+            assetName: null,
             date: row.trade_date ?? '',
             sector: row.sector ?? '',
           } satisfies TradeRow,
@@ -175,11 +177,12 @@ export async function GET(
         type: (trade.trade_type ?? row.transaction_type ?? 'UNKNOWN').toUpperCase(),
         amount: trade.amount ?? parseAmountRange(row.amount_range),
         ticker: trade.ticker ?? row.ticker ?? 'N/A',
+        assetName: trade.asset_name ?? null,
         date: trade.trade_date ?? row.trade_date ?? '',
         sector: row.sector ?? '',
       }));
     });
-    const trades = allTrades.filter((t: TradeRow) => t.ticker !== 'N/A' && t.amount > 0);
+    const trades = allTrades.filter((t: TradeRow) => (t.ticker !== 'N/A' || t.assetName) && t.amount > 0);
 
     return NextResponse.json({
       member: { ...member, party, state, district, is_active: member.is_active ?? true, termStart, termEnd },

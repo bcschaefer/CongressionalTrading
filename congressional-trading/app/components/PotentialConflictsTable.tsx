@@ -342,109 +342,72 @@ export default function PotentialConflictsTable({ trades, votes, isLoading, erro
   }, [conflicts]);
 
   return (
-    <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-      <div style={{ padding: '24px 24px 8px' }}>
-        <h2
-          style={{
-            fontSize: 'clamp(1.4rem, 5vw, 2rem)',
-            fontWeight: 800,
-            color: '#1f2937',
-            marginBottom: '4px',
-            textAlign: 'center',
-          }}
-        >
-          Potential Conflicts of Interest
-        </h2>
-        <p style={{ textAlign: 'center', fontSize: '13px', color: '#9ca3af', marginBottom: '4px' }}>
+    <div className="overflow-hidden rounded-md border border-(--color-border) bg-white">
+      <div className="px-6 pb-2 pt-6">
+        <h2 className="mb-1 text-lg font-bold text-(--color-text-primary)">Potential Conflicts of Interest</h2>
+        <p className="mb-1 text-[13px] text-(--color-text-muted)">
           Trades within {WINDOW_DAYS} days of a related vote, plus holdings at vote time
         </p>
         {!notReady && grouped.length > 0 && (
-          <p style={{ textAlign: 'center', fontSize: '12px', color: '#6b7280', marginBottom: '12px' }}>
+          <p className="mb-3 text-xs text-(--color-text-secondary)">
             {conflicts.length} potential conflict{conflicts.length !== 1 ? 's' : ''} across {grouped.length} vote{grouped.length !== 1 ? 's' : ''}
           </p>
         )}
       </div>
 
       {notReady ? (
-        <div style={{ padding: '48px', textAlign: 'center' }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              border: '3px solid #e0e7ff',
-              borderTopColor: '#3b82f6',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-              margin: '0 auto',
-            }}
-          />
-          <p style={{ marginTop: '12px', fontSize: '13px', color: '#9ca3af' }}>Loading data…</p>
+        <div className="p-12 text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-[3px] border-(--color-border) border-t-(--color-accent)" />
+          <p className="mt-3 text-[13px] text-(--color-text-muted)">Loading data…</p>
         </div>
       ) : error && !votes.length ? (
-        <div style={{ padding: '48px', textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', color: '#9ca3af' }}>{error}</p>
+        <div className="p-12 text-center">
+          <p className="text-sm text-(--color-text-muted)">{error}</p>
         </div>
       ) : grouped.length === 0 ? (
-        <div style={{ padding: '48px', textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', color: '#6b7280', fontWeight: 600 }}>No conflicts detected</p>
-          <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
+        <div className="p-12 text-center">
+          <p className="text-sm font-semibold text-(--color-text-secondary)">No conflicts detected</p>
+          <p className="mt-1 text-xs text-(--color-text-muted)">
             No trades or holdings matched the sectors of recent votes.
           </p>
         </div>
       ) : (
-        <div style={{ overflowY: 'auto', maxHeight: '600px', padding: '0 16px 16px' }}>
+        <div className="max-h-[600px] overflow-y-auto px-4 pb-4">
           {grouped.map((group, gi) => {
             const voteLabel = normalizeVoteLabel(group.memberVoted);
             const voteDateStr = new Date(group.voteDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            const voteColor = voteLabel === 'Yes' ? '#16a34a' : voteLabel === 'No' ? '#dc2626' : '#9ca3af';
-            const voteBg = voteLabel === 'Yes' ? '#f0fdf4' : voteLabel === 'No' ? '#fef2f2' : '#f9fafb';
+            const voteTextVar = voteLabel === 'Yes' ? '--color-positive' : voteLabel === 'No' ? '--color-negative' : '--color-text-muted';
+            const voteBgVar = voteLabel === 'Yes' ? '--color-positive-bg' : voteLabel === 'No' ? '--color-negative-bg' : '--color-bg-subtle';
 
             return (
-              <div
-                key={gi}
-                style={{
-                  marginTop: '12px',
-                  borderRadius: '10px',
-                  border: '1px solid #e5e7eb',
-                  overflow: 'hidden',
-                }}
-              >
+              <div key={gi} className="mt-3 overflow-hidden rounded-md border border-(--color-border)">
                 {/* Vote header */}
-                <div style={{ background: '#f9fafb', padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '10px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#111827', lineHeight: 1.4, marginBottom: '3px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                <div className="flex flex-wrap items-start gap-2.5 border-b border-(--color-border) bg-(--color-bg-subtle) px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-0.5 line-clamp-2 text-[13px] font-bold leading-normal text-(--color-text-primary)">
                       {group.voteQuestion}
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '11px', color: '#9ca3af' }}>{voteDateStr}</span>
-                      <span style={{ fontSize: '10px', color: '#1d4ed8', background: '#eff6ff', borderRadius: '4px', padding: '1px 6px', fontWeight: 600 }}>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] text-(--color-text-muted)">{voteDateStr}</span>
+                      <span className="rounded-sm bg-(--color-chip-bg) px-1.5 py-0.5 text-[10px] font-semibold text-(--color-chip-text)">
                         matched on &ldquo;{group.matchedKeyword}&rdquo;
                       </span>
                     </div>
                   </div>
                   <span
-                    style={{
-                      flexShrink: 0,
-                      display: 'inline-block',
-                      padding: '4px 12px',
-                      borderRadius: '9999px',
-                      background: voteBg,
-                      color: voteColor,
-                      fontWeight: 700,
-                      fontSize: '12px',
-                      whiteSpace: 'nowrap',
-                    }}
+                    className="inline-block shrink-0 whitespace-nowrap rounded-sm px-3 py-1 text-xs font-bold"
+                    style={{ background: `var(${voteBgVar})`, color: `var(${voteTextVar})` }}
                   >
                     Voted {voteLabel}
                   </span>
                 </div>
 
                 {/* Related trades */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '10px 14px' }}>
+                <div className="flex flex-wrap gap-1.5 px-3.5 py-2.5">
                   {group.trades.map((c, ti) => {
                     const isHolding = c.conflictType === 'holding';
                     const label = isHolding ? 'Held' : tradeLabel(c.tradeType);
-                    const dotColor = isHolding ? '#a78bfa' : label === 'Purchase' ? '#4ade80' : '#f87171';
+                    const labelColor = isHolding ? 'var(--color-text-muted)' : label === 'Purchase' ? 'var(--color-positive)' : 'var(--color-negative)';
                     const absDelta = Math.abs(c.deltaDays);
                     const direction = c.deltaDays < 0 ? 'before' : c.deltaDays === 0 ? 'same day' : 'after';
                     const deltaLabel = isHolding
@@ -455,23 +418,12 @@ export default function PotentialConflictsTable({ trades, votes, isLoading, erro
                       <Link
                         key={ti}
                         href={`/stocks/${c.ticker}`}
-                        className="group transition-all hover:bg-gray-800 hover:border-gray-800 hover:shadow-md hover:scale-105"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          background: '#f3f4f6',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '9999px',
-                          padding: '4px 10px',
-                          textDecoration: 'none',
-                          whiteSpace: 'nowrap',
-                        }}
+                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm border border-(--color-border) px-2.5 py-1 transition-all duration-150 hover:-translate-y-0.5 hover:border-(--color-accent) hover:shadow-sm"
                       >
-                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-                        <span className="group-hover:text-white" style={{ fontWeight: 700, color: '#111827', fontSize: '12px' }}>{c.ticker}</span>
-                        <span className="group-hover:text-gray-300" style={{ fontSize: '11px', color: '#6b7280' }}>{formatMoney(c.tradeAmount)}</span>
-                        <span className="group-hover:text-gray-400" style={{ fontSize: '10px', color: '#9ca3af' }}>{deltaLabel}</span>
+                        <span className="rounded-sm bg-(--color-chip-bg) px-1.5 py-0.5 text-xs font-bold text-(--color-chip-text)">{c.ticker}</span>
+                        <span className="text-xs font-medium" style={{ color: labelColor }}>{label}</span>
+                        <span className="text-[11px] text-(--color-text-secondary)">{formatMoney(c.tradeAmount)}</span>
+                        <span className="text-[10px] text-(--color-text-muted)">{deltaLabel}</span>
                       </Link>
                     );
                   })}
@@ -484,8 +436,8 @@ export default function PotentialConflictsTable({ trades, votes, isLoading, erro
 
       {/* Disclaimer */}
       {!notReady && (
-        <div style={{ padding: '10px 20px 14px', borderTop: '1px solid #f3f4f6' }}>
-          <p style={{ fontSize: '11px', color: '#9ca3af', textAlign: 'center', margin: 0 }}>
+        <div className="border-t border-(--color-border) px-5 pb-3.5 pt-2.5">
+          <p className="m-0 text-center text-[11px] text-(--color-text-muted)">
             Conflicts are detected by matching vote topics to trade sectors using keyword analysis. Holdings are estimated from disclosed trade history. This is not legal analysis — correlation does not imply wrongdoing.
           </p>
         </div>

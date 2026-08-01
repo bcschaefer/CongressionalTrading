@@ -134,9 +134,19 @@ export default function NavBar() {
 
   return (
     <>
-      <header className="site-nav-wrap">
-        <nav className="site-nav-inner">
-          <div className="site-nav-links">
+      <div className="h-1 bg-linear-to-r from-(--color-accent) to-(--color-negative)" />
+      <header className="sticky top-0 z-50 border-b border-(--color-border) bg-white">
+        <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
+          <Link
+            href="/"
+            className="shrink-0 text-base font-bold text-(--color-text-primary)"
+            aria-label="Go to Home"
+            onMouseEnter={() => prefetchOnHover('/')}
+          >
+            InsideTrader
+          </Link>
+
+          <div className="flex flex-wrap items-center gap-5">
             {NAV_ITEMS.map((item) => {
               const active = item.isActive(pathname);
               return (
@@ -144,7 +154,11 @@ export default function NavBar() {
                   key={item.href}
                   href={item.href}
                   onMouseEnter={() => prefetchOnHover(item.href)}
-                  className={`site-nav-pill ${active ? 'site-nav-pill-active' : ''}`}
+                  className={`border-b-2 py-1 text-sm font-medium transition-all duration-150 ${
+                    active
+                      ? 'border-(--color-accent) text-(--color-accent)'
+                      : 'border-transparent text-(--color-text-secondary) hover:border-(--color-border-strong) hover:text-(--color-accent)'
+                  }`}
                 >
                   {item.label}
                 </Link>
@@ -154,14 +168,14 @@ export default function NavBar() {
               href={REPORT_HREF}
               target="_blank"
               rel="noreferrer"
-              className="site-nav-pill site-nav-pill-report"
+              className="border-b-2 border-transparent py-1 text-sm font-medium text-(--color-text-secondary) transition-all duration-150 hover:border-(--color-border-strong) hover:text-(--color-accent)"
             >
               View Report
             </a>
           </div>
 
-          <div className="site-nav-search-wrap" ref={searchRef}>
-            <form onSubmit={onSubmit} className="site-nav-search-form" role="search" aria-label="Global search">
+          <div className="relative ml-auto min-w-[200px] max-w-xs flex-1" ref={searchRef}>
+            <form onSubmit={onSubmit} className="flex items-center" role="search" aria-label="Global search">
               <input
                 type="text"
                 value={query}
@@ -171,32 +185,41 @@ export default function NavBar() {
                 }}
                 onKeyDown={onKeyDown}
                 placeholder="Search stock or representative"
-                className="site-nav-search-input"
+                className="w-full rounded-(--radius-sm) border border-(--color-border) bg-white px-3 py-1.5 text-sm text-(--color-text-primary) outline-none transition-all duration-150 placeholder:text-(--color-text-muted) focus:border-(--color-accent) focus:ring-2 focus:ring-(--color-accent)/15"
                 aria-label="Search stock or representative"
               />
-              <button type="submit" className="site-nav-search-btn">
-                <svg viewBox="0 0 24 24" aria-hidden="true" className="site-nav-search-btn-icon">
+              <button
+                type="submit"
+                className="ml-1.5 inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-(--radius-sm) border border-(--color-border) text-(--color-text-secondary) transition-all duration-150 hover:border-(--color-accent) hover:text-(--color-accent)"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
                   <path
                     fill="currentColor"
                     d="M10.5 3a7.5 7.5 0 0 1 5.916 12.112l4.736 4.736a1 1 0 0 1-1.414 1.414l-4.736-4.736A7.5 7.5 0 1 1 10.5 3Zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z"
                   />
                 </svg>
-                <span className="site-nav-sr-only">Search</span>
+                <span className="sr-only">Search</span>
               </button>
-          </form>
+            </form>
 
-          {isOpen && (
-              <div className="site-nav-search-dropdown" role="listbox" aria-label="Search results">
+            {isOpen && (
+              <div
+                className="absolute left-0 right-0 top-[calc(100%+6px)] z-[70] overflow-hidden rounded-(--radius-sm) border border-(--color-border) bg-white"
+                role="listbox"
+                aria-label="Search results"
+              >
                 {loading ? (
-                  <div className="site-nav-search-empty">Searching...</div>
+                  <div className="px-3 py-2.5 text-sm text-(--color-text-secondary)">Searching...</div>
                 ) : results.length === 0 ? (
-                  <div className="site-nav-search-empty">No matches found</div>
+                  <div className="px-3 py-2.5 text-sm text-(--color-text-secondary)">No matches found</div>
                 ) : (
                   results.map((result, index) => (
                     <button
                       key={`${result.type}-${result.href}-${index}`}
                       type="button"
-                      className={`site-nav-search-item ${index === activeIndex ? 'site-nav-search-item-active' : ''}`}
+                      className={`flex w-full cursor-pointer items-center gap-2.5 border-t border-(--color-border) px-3 py-2 text-left transition-colors first:border-t-0 hover:bg-(--color-bg-subtle) ${
+                        index === activeIndex ? 'bg-(--color-bg-subtle)' : ''
+                      }`}
                       onMouseEnter={() => {
                         setActiveIndex(index);
                         prefetchOnHover(result.href);
@@ -206,28 +229,36 @@ export default function NavBar() {
                       role="option"
                       aria-selected={index === activeIndex}
                     >
-                      <span className="site-nav-search-type">{result.type === 'member' ? 'REP' : 'STOCK'}</span>
-                      <span className="site-nav-search-text">
-                        <span className="site-nav-search-label">{result.label}</span>
-                        <span className="site-nav-search-sublabel">{result.sublabel}</span>
+                      <span
+                        className={`inline-flex min-w-[44px] shrink-0 items-center justify-center rounded-(--radius-sm) border px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${
+                          result.type === 'member'
+                            ? 'border-(--color-accent) text-(--color-accent)'
+                            : 'border-(--color-chip-text)/40 text-(--color-chip-text)'
+                        }`}
+                      >
+                        {result.type === 'member' ? 'REP' : 'STOCK'}
+                      </span>
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-(--color-text-primary)">{result.label}</span>
+                        <span className="truncate text-xs text-(--color-text-muted)">{result.sublabel}</span>
                       </span>
                     </button>
                   ))
                 )}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
 
-          <div className="site-nav-social">
+          <div className="flex shrink-0 items-center gap-2">
             <a
               href={LINKEDIN_HREF}
               target="_blank"
               rel="noreferrer"
-              className="site-nav-social-btn site-nav-linkedin"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-(--color-border) text-(--color-text-secondary) transition-all duration-150 hover:-translate-y-0.5 hover:border-(--color-accent) hover:text-(--color-accent)"
               aria-label="Open Benjamin Schaefer LinkedIn profile"
               title="View on LinkedIn"
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true" className="site-nav-social-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
                 <path
                   fill="currentColor"
                   d="M20.45 20.45h-3.554v-5.57c0-1.328-.026-3.037-1.851-3.037-1.852 0-2.136 1.446-2.136 2.94v5.667H9.346V9h3.414v1.561h.049c.476-.9 1.637-1.85 3.369-1.85 3.601 0 4.266 2.369 4.266 5.455v6.284ZM5.337 7.433a2.064 2.064 0 1 1 0-4.129 2.064 2.064 0 0 1 0 4.129ZM7.114 20.45H3.56V9h3.554v11.45ZM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.226.792 24 1.771 24h20.454C23.204 24 24 23.226 24 22.271V1.729C24 .774 23.204 0 22.225 0Z"
@@ -239,11 +270,11 @@ export default function NavBar() {
               href={GITHUB_HREF}
               target="_blank"
               rel="noreferrer"
-              className="site-nav-social-btn site-nav-github"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-(--color-border) text-(--color-text-secondary) transition-all duration-150 hover:-translate-y-0.5 hover:border-(--color-accent) hover:text-(--color-accent)"
               aria-label="Open project GitHub repository"
               title="View on GitHub"
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true" className="site-nav-social-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
                 <path
                   fill="currentColor"
                   d="M12 .5C5.649.5.5 5.649.5 12c0 5.084 3.292 9.398 7.861 10.92.575.106.785-.25.785-.555 0-.274-.01-1-.016-1.962-3.198.695-3.873-1.541-3.873-1.541-.523-1.328-1.277-1.682-1.277-1.682-1.044-.714.079-.699.079-.699 1.154.081 1.761 1.185 1.761 1.185 1.025 1.757 2.69 1.25 3.345.956.104-.743.401-1.25.729-1.538-2.553-.291-5.238-1.277-5.238-5.683 0-1.255.448-2.281 1.183-3.085-.119-.291-.512-1.462.112-3.048 0 0 .965-.309 3.162 1.179A10.98 10.98 0 0 1 12 6.07c.975.005 1.958.132 2.875.387 2.195-1.488 3.158-1.179 3.158-1.179.626 1.586.233 2.757.114 3.048.737.804 1.181 1.83 1.181 3.085 0 4.417-2.689 5.389-5.251 5.675.413.355.781 1.055.781 2.126 0 1.536-.014 2.775-.014 3.153 0 .308.207.667.79.554C20.21 21.394 23.5 17.082 23.5 12 23.5 5.649 18.351.5 12 .5Z"
@@ -251,384 +282,8 @@ export default function NavBar() {
               </svg>
             </a>
           </div>
-
-          <Link href="/" className="site-nav-brand" aria-label="Go to Home" onMouseEnter={() => prefetchOnHover('/')}>
-          InsideTrader
-        </Link>
-      </nav>
-    </header>
-
-      <style jsx global>{`
-        .site-nav-wrap {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          backdrop-filter: blur(10px);
-          background: linear-gradient(90deg, #ef4444 0%, #2563eb 100%);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.28);
-        }
-
-        .site-nav-inner {
-          max-width: 80rem;
-          margin: 0 auto;
-          padding: 20px 24px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-        }
-
-        .site-nav-links {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex-shrink: 0;
-          flex-wrap: wrap;
-        }
-
-        .site-nav-search-wrap {
-          position: relative;
-          flex: 1;
-          min-width: 220px;
-          max-width: 520px;
-        }
-
-        .site-nav-social {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          flex-shrink: 0;
-          order: 3;
-          margin-left: auto;
-        }
-
-        .site-nav-social-btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 42px;
-          height: 42px;
-          flex-shrink: 0;
-          border-radius: 9999px;
-          border: 1px solid rgba(255, 255, 255, 0.35);
-          background: rgba(15, 23, 42, 0.22);
-          color: #ffffff;
-          box-shadow: 0 2px 10px rgba(15, 23, 42, 0.2);
-          transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-        }
-
-        .site-nav-social-btn:hover {
-          transform: translateY(-1px);
-          background: rgba(15, 23, 42, 0.38);
-          border-color: rgba(255, 255, 255, 0.6);
-          box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
-        }
-
-        .site-nav-social-icon {
-          width: 19px;
-          height: 19px;
-        }
-
-        .site-nav-linkedin {
-          background: rgba(10, 102, 194, 0.35);
-        }
-
-        .site-nav-search-form {
-          display: flex;
-          align-items: center;
-          gap: 0;
-        }
-
-        .site-nav-search-input {
-          width: 100%;
-          border: 1px solid rgba(255, 255, 255, 0.42);
-          background: rgba(255, 255, 255, 0.16);
-          color: #ffffff;
-          border-radius: 9999px;
-          padding: 10px 14px;
-          font-size: 14px;
-          font-weight: 600;
-          outline: none;
-          transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .site-nav-search-input::placeholder {
-          color: rgba(255, 255, 255, 0.7);
-        }
-
-        .site-nav-pill-report {
-          background: rgba(15, 23, 42, 0.26);
-        }
-
-        .site-nav-search-input:focus {
-          border-color: rgba(255, 255, 255, 0.75);
-          background: rgba(255, 255, 255, 0.22);
-          box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
-        }
-
-        .site-nav-search-btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          border: 1px solid rgba(255, 255, 255, 0.4);
-          background: rgba(15, 23, 42, 0.25);
-          color: #ffffff;
-          border-radius: 9999px;
-          width: 40px;
-          height: 40px;
-          margin-left: 0;
-          padding: 0;
-          cursor: pointer;
-          transition: background-color 0.2s ease, border-color 0.2s ease;
-        }
-
-        .site-nav-search-btn-icon {
-          width: 18px;
-          height: 18px;
-        }
-
-        .site-nav-sr-only {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          padding: 0;
-          margin: -1px;
-          overflow: hidden;
-          clip: rect(0, 0, 0, 0);
-          white-space: nowrap;
-          border: 0;
-        }
-
-        .site-nav-search-btn:hover {
-          background: rgba(15, 23, 42, 0.38);
-          border-color: rgba(255, 255, 255, 0.6);
-        }
-
-        .site-nav-search-dropdown {
-          position: absolute;
-          top: calc(100% + 8px);
-          left: 0;
-          right: 0;
-          border-radius: 14px;
-          background: rgba(15, 23, 42, 0.92);
-          border: 1px solid rgba(255, 255, 255, 0.25);
-          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.45);
-          overflow: hidden;
-          z-index: 70;
-          backdrop-filter: blur(8px);
-        }
-
-        .site-nav-search-empty {
-          padding: 12px 14px;
-          color: rgba(255, 255, 255, 0.86);
-          font-size: 13px;
-          font-weight: 600;
-        }
-
-        .site-nav-search-item {
-          width: 100%;
-          border: 0;
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
-          background: transparent;
-          color: #ffffff;
-          cursor: pointer;
-          text-align: left;
-          padding: 10px 12px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .site-nav-search-item:first-child {
-          border-top: 0;
-        }
-
-        .site-nav-search-item:hover,
-        .site-nav-search-item-active {
-          background: rgba(59, 130, 246, 0.24);
-        }
-
-        .site-nav-search-type {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 48px;
-          padding: 3px 7px;
-          border-radius: 9999px;
-          background: rgba(255, 255, 255, 0.15);
-          border: 1px solid rgba(255, 255, 255, 0.24);
-          font-size: 10px;
-          font-weight: 800;
-          letter-spacing: 0.05em;
-        }
-
-        .site-nav-search-text {
-          display: flex;
-          flex-direction: column;
-          min-width: 0;
-          gap: 2px;
-        }
-
-        .site-nav-search-label {
-          font-size: 13px;
-          font-weight: 700;
-          line-height: 1.2;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .site-nav-search-sublabel {
-          font-size: 11px;
-          color: rgba(255, 255, 255, 0.76);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .site-nav-pill {
-          font-size: 14px;
-          font-weight: 700;
-          color: #ffffff;
-          text-decoration: none;
-          padding: 10px 14px;
-          border-radius: 9999px;
-          border: 1px solid rgba(255, 255, 255, 0.35);
-          background: rgba(255, 255, 255, 0.12);
-          box-shadow: 0 2px 10px rgba(15, 23, 42, 0.2);
-          transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-        }
-
-        .site-nav-pill:hover {
-          transform: translateY(-1px);
-          background: rgba(255, 255, 255, 0.24);
-          border-color: rgba(255, 255, 255, 0.6);
-          box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
-        }
-
-        .site-nav-pill-active {
-          background: rgba(15, 23, 42, 0.28);
-          border-color: rgba(255, 255, 255, 0.75);
-          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 6px 16px rgba(15, 23, 42, 0.3);
-        }
-
-        .site-nav-brand {
-          background: linear-gradient(90deg, #3b82f6 0%, #ef4444 100%);
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
-          text-decoration: none;
-          font-weight: 900;
-          letter-spacing: 0.02em;
-          font-size: 34px;
-          line-height: 1;
-          text-shadow: 0 3px 12px rgba(15, 23, 42, 0.45);
-          transition: transform 0.2s ease, filter 0.2s ease;
-        }
-
-        .site-nav-brand:hover {
-          transform: translateY(-1px);
-          filter: brightness(1.15);
-        }
-
-        @media (max-width: 980px) {
-          .site-nav-inner {
-            flex-wrap: wrap;
-            padding: 14px 16px;
-            gap: 10px;
-          }
-
-          .site-nav-links {
-            order: 1;
-            flex-wrap: wrap;
-          }
-
-          .site-nav-brand {
-            order: 2;
-            margin-left: auto;
-            font-size: 28px;
-          }
-
-          .site-nav-search-wrap {
-            order: 3;
-            flex-basis: 100%;
-            max-width: none;
-            min-width: 0;
-          }
-
-          .site-nav-social {
-            order: 4;
-            margin-left: auto;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .site-nav-inner {
-            padding: 12px;
-            gap: 8px;
-          }
-
-          .site-nav-links {
-            width: 100%;
-            justify-content: center;
-            order: 3;
-          }
-
-          .site-nav-pill {
-            font-size: 12px;
-            padding: 7px 10px;
-          }
-
-          .site-nav-brand {
-            order: 1;
-            margin-left: 0;
-            margin-right: 0;
-            width: auto;
-            text-align: left;
-            font-size: 24px;
-          }
-
-          .site-nav-search-wrap {
-            order: 3;
-          }
-
-          .site-nav-social {
-            order: 2;
-            margin-left: auto;
-            gap: 6px;
-          }
-
-          .site-nav-social-btn {
-            width: 34px;
-            height: 34px;
-          }
-
-          .site-nav-social-icon {
-            width: 16px;
-            height: 16px;
-          }
-
-          .site-nav-search-form {
-            gap: 0;
-          }
-
-          .site-nav-search-input {
-            font-size: 12px;
-            padding: 8px 10px;
-          }
-
-          .site-nav-search-btn {
-            width: 34px;
-            height: 34px;
-            margin-left: 0;
-          }
-
-          .site-nav-search-btn-icon {
-            width: 15px;
-            height: 15px;
-          }
-        }
-      `}</style>
+        </nav>
+      </header>
     </>
   );
 }

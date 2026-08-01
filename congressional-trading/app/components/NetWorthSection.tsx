@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import NetWorthDonutChart, { CATEGORY_COLORS } from './NetWorthDonutChart';
+import StatCard from './ui/StatCard';
 import type { AnnualDisclosureItem } from './StockDisclosuresMenu';
 
 type AssetEntry = {
@@ -87,85 +88,35 @@ export default function NetWorthSection({
     return assetSort.direction === 'asc' ? '↑' : '↓';
   }
 
+  function sortHeaderClass(key: 'name' | 'typeCode' | 'owner' | 'valueMid') {
+    return assetSort.key === key ? 'text-(--color-text-primary)' : 'text-(--color-text-muted)';
+  }
+
   return (
-    <div
-      className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 overflow-hidden"
-      style={{ paddingBottom: '40px' }}
-    >
-      <h2
-        style={{
-          marginTop: '12px',
-          marginBottom: '14px',
-          textAlign: 'center',
-          fontSize: 'clamp(1.75rem, 7.2vw, 2.5rem)',
-          fontWeight: 800,
-          lineHeight: 1.05,
-          color: '#1e3a8a',
-        }}
-      >
-        Estimated Net Worth
-      </h2>
+    <div className="overflow-hidden rounded-md border border-(--color-border) bg-white p-6 pb-10">
+      <h2 className="mb-1 text-lg font-bold text-(--color-text-primary)">Estimated Net Worth</h2>
       {netWorth?.filing && (
         <>
-          <p
-            style={{
-              textAlign: 'center',
-              color: '#6b7280',
-              fontSize: '15px',
-              marginBottom: '12px',
-              marginTop: '-6px',
-            }}
-          >
+          <p className="mb-3 text-sm text-(--color-text-muted)">
             from {netWorth.filing.filing_year} Annual Financial Disclosure
           </p>
           {disclosures.length > 0 && (
-            <div
-              ref={dropdownRef}
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                marginBottom: '18px',
-                position: 'relative',
-              }}
-            >
+            <div ref={dropdownRef} className="relative mb-4.5 flex">
               <button
                 type="button"
                 onClick={() => setDropdownOpen((v) => !v)}
-                style={{
-                  border: '1px solid #d1d5db',
-                  background: '#ffffff',
-                  color: '#1f2937',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '14px',
-                }}
+                className="inline-flex cursor-pointer items-center gap-3.5 rounded-sm border border-(--color-border) bg-white px-3 py-1.5 text-[13px] font-semibold text-(--color-text-primary)"
               >
                 View Disclosures ({disclosures.length})
-                <span style={{ fontSize: '11px', transition: 'transform 200ms', display: 'inline-block', transform: dropdownOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▸</span>
+                <span
+                  className="inline-block text-[11px] transition-transform duration-200"
+                  style={{ transform: dropdownOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                >
+                  ▸
+                </span>
               </button>
               {dropdownOpen && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 6px)',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '10px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
-                    zIndex: 50,
-                    width: 'min(280px, calc(100vw - 48px))',
-                    maxHeight: '260px',
-                    overflowY: 'auto',
-                    padding: '6px 0',
-                  }}
-                >
+                <div className="absolute top-[calc(100%+6px)] left-1/2 z-50 max-h-[260px] w-[min(280px,calc(100vw-48px))] -translate-x-1/2 overflow-y-auto rounded-md border border-(--color-border) bg-white py-1.5">
                   {disclosures.map((d) => (
                     <a
                       key={d.id}
@@ -176,25 +127,14 @@ export default function NetWorthSection({
                       }
                       target="_blank"
                       rel="noreferrer"
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '8px 16px',
-                        fontSize: '13px',
-                        color: '#1f2937',
-                        textDecoration: 'none',
-                        borderBottom: '1px solid #f3f4f6',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      className="flex items-center justify-between border-b border-(--color-border) px-4 py-2 text-[13px] text-(--color-text-primary) last:border-b-0 hover:bg-(--color-bg-subtle)"
                     >
-                      <span style={{ fontWeight: 600 }}>
+                      <span className="font-semibold">
                         {d.filing_year}{' '}
                         {d.filing_type === 'O' ? 'Original' : d.filing_type === 'A' ? 'Amendment' : d.filing_type === 'C' ? 'Candidate' : d.filing_type === 'SENATE_ANNUAL' ? 'Annual' : d.filing_type}
                       </span>
                       {d.filing_date && (
-                        <span style={{ color: '#9ca3af', fontSize: '12px', marginLeft: '12px' }}>
+                        <span className="ml-3 text-xs text-(--color-text-muted)">
                           {new Date(d.filing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                       )}
@@ -208,238 +148,110 @@ export default function NetWorthSection({
       )}
 
       {!netWorth && (
-        <p style={{ textAlign: 'center', color: '#9ca3af', padding: '32px 0', fontSize: '14px' }}>
+        <p className="py-8 text-center text-sm text-(--color-text-muted)">
           Loading financial data…
         </p>
       )}
 
       {netWorth?.noElectronicDisclosures && (
-        <p style={{ textAlign: 'center', color: '#9ca3af', padding: '32px 0', fontSize: '14px' }}>
+        <p className="py-8 text-center text-sm text-(--color-text-muted)">
           No electronic disclosures available for this member — their financial disclosures were
           filed as scanned paper documents, which can&apos;t be parsed into an assets/liabilities breakdown.
         </p>
       )}
 
       {netWorth && !netWorth.summary && !netWorth.noElectronicDisclosures && (
-        <p style={{ textAlign: 'center', color: '#9ca3af', padding: '32px 0', fontSize: '14px' }}>
+        <p className="py-8 text-center text-sm text-(--color-text-muted)">
           No annual disclosure data available for this member.
         </p>
       )}
 
       {netWorth?.summary && (
         <>
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              gap: '22px',
-              marginBottom: '28px',
-            }}
-          >
-            {[
-              { label: 'Est. Total Assets', value: formatMoney(netWorth.summary.totalAssets) },
-              { label: 'Est. Liabilities', value: `(${formatMoney(netWorth.summary.totalLiabilities)})` },
-              { label: 'Est. Net Worth', value: formatMoney(netWorth.summary.estimatedNetWorth) },
-            ].map(({ label, value }) => (
-              <div key={label} style={{ textAlign: 'center' }}>
-                <div
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    color: '#6b7280',
-                    marginBottom: '4px',
-                  }}
-                >
-                  {label}
-                </div>
-                <div style={{ fontSize: 'clamp(1.25rem, 5vw, 1.75rem)', fontWeight: 800, color: '#111827' }}>{value}</div>
-              </div>
-            ))}
+          <div className="mb-7 flex flex-wrap gap-3">
+            <StatCard label="Est. Total Assets" value={formatMoney(netWorth.summary.totalAssets)} valueColor="var(--color-positive)" />
+            <StatCard label="Est. Liabilities" value={`(${formatMoney(netWorth.summary.totalLiabilities)})`} valueColor="var(--color-negative)" />
+            <StatCard label="Est. Net Worth" value={formatMoney(netWorth.summary.estimatedNetWorth)} />
           </div>
 
-          <div className="w-full overflow-x-auto" style={{ marginBottom: '4px' }}>
+          <div className="mb-1 w-full overflow-x-auto">
             <NetWorthDonutChart byCategory={netWorth.byCategory} />
           </div>
 
 
           {netWorth.assets.length > 0 && (
             <>
-              <div
-                className="ml-1 sm:ml-4"
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'baseline',
-                  gap: '16px',
-                  marginBottom: '12px',
-                }}
-              >
-                <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', margin: 0 }}>
+              <div className="mb-3 ml-1 flex flex-wrap items-baseline gap-4 sm:ml-4">
+                <h3 className="m-0 text-xl font-bold text-(--color-text-primary)">
                   Asset Holdings
                 </h3>
-                <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                <span className="text-xs text-(--color-text-muted)">
                   {[['Self', 'Member'], ['SP', 'Spouse'], ['JT', 'Joint'], ['DC', 'Dependent Child']].map(
                     ([abbr, label]) => (
-                      <span key={abbr} style={{ marginRight: '10px' }}>
-                        <span style={{ fontWeight: 700, color: '#374151' }}>{abbr}</span> = {label}
+                      <span key={abbr} className="mr-2.5">
+                        <span className="font-bold text-(--color-text-secondary)">{abbr}</span> = {label}
                       </span>
                     )
                   )}
                 </span>
               </div>
-              <div className="overflow-x-auto sm:pl-4" style={{ marginBottom: '6px' }}>
-                <div
-                  style={{
-                    maxHeight: '360px',
-                    overflowY: 'auto',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '10px',
-                  }}
-                >
-                  <table
-                    style={{
-                      width: '100%',
-                      fontSize: '13px',
-                      borderCollapse: 'collapse',
-                    }}
-                  >
+              <div className="mb-1.5 overflow-x-auto sm:pl-4">
+                <div className="max-h-[360px] overflow-y-auto rounded-md border border-(--color-border)">
+                  <table className="w-full border-collapse text-[13px]">
                     <thead>
-                      <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                      <tr className="border-b-2 border-(--color-border)">
                         <th
                           onClick={() => toggleAssetSort('name')}
-                          style={{
-                            textAlign: 'left',
-                            padding: '6px 10px 6px 18px',
-                            color: '#6b7280',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            userSelect: 'none',
-                          }}
+                          className="cursor-pointer select-none px-2.5 py-1.5 pl-4.5 text-left font-semibold text-(--color-text-muted)"
                         >
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="inline-flex items-center gap-1.5">
                             <span>Asset</span>
-                            <span
-                              style={{
-                                color: assetSort.key === 'name' ? '#111827' : '#9ca3af',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                              }}
-                            >
-                              {sortIndicator('name')}
-                            </span>
+                            <span className={`text-xs font-bold ${sortHeaderClass('name')}`}>{sortIndicator('name')}</span>
                           </span>
                         </th>
                         <th
                           onClick={() => toggleAssetSort('typeCode')}
-                          style={{
-                            textAlign: 'left',
-                            padding: '6px 10px',
-                            color: '#6b7280',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            userSelect: 'none',
-                          }}
+                          className="cursor-pointer select-none px-2.5 py-1.5 text-left font-semibold text-(--color-text-muted)"
                         >
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="inline-flex items-center gap-1.5">
                             <span>Type</span>
-                            <span
-                              style={{
-                                color: assetSort.key === 'typeCode' ? '#111827' : '#9ca3af',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                              }}
-                            >
-                              {sortIndicator('typeCode')}
-                            </span>
+                            <span className={`text-xs font-bold ${sortHeaderClass('typeCode')}`}>{sortIndicator('typeCode')}</span>
                           </span>
                         </th>
                         <th
                           onClick={() => toggleAssetSort('owner')}
-                          style={{
-                            textAlign: 'left',
-                            padding: '6px 10px',
-                            color: '#6b7280',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            userSelect: 'none',
-                          }}
+                          className="cursor-pointer select-none px-2.5 py-1.5 text-left font-semibold text-(--color-text-muted)"
                         >
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="inline-flex items-center gap-1.5">
                             <span>Owner</span>
-                            <span
-                              style={{
-                                color: assetSort.key === 'owner' ? '#111827' : '#9ca3af',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                              }}
-                            >
-                              {sortIndicator('owner')}
-                            </span>
+                            <span className={`text-xs font-bold ${sortHeaderClass('owner')}`}>{sortIndicator('owner')}</span>
                           </span>
                         </th>
                         <th
                           onClick={() => toggleAssetSort('valueMid')}
-                          style={{
-                            textAlign: 'right',
-                            padding: '6px 10px',
-                            color: '#6b7280',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            userSelect: 'none',
-                          }}
+                          className="cursor-pointer select-none px-2.5 py-1.5 text-right font-semibold text-(--color-text-muted)"
                         >
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="inline-flex items-center gap-1.5">
                             <span>Est. Value</span>
-                            <span
-                              style={{
-                                color: assetSort.key === 'valueMid' ? '#111827' : '#9ca3af',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                              }}
-                            >
-                              {sortIndicator('valueMid')}
-                            </span>
+                            <span className={`text-xs font-bold ${sortHeaderClass('valueMid')}`}>{sortIndicator('valueMid')}</span>
                           </span>
                         </th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-(--color-border)">
                       {sortedAssets.map((asset, i) => (
-                        <tr
-                          key={`${asset.name}-${asset.owner}-${i}`}
-                          style={{
-                            borderBottom: '1px solid #f3f4f6',
-                            background: i % 2 === 0 ? '#fff' : '#f9fafb',
-                          }}
-                        >
-                          <td style={{ padding: '7px 10px 7px 18px', color: '#6b7280' }}>{asset.name}</td>
-                          <td style={{ padding: '7px 10px' }}>
+                        <tr key={`${asset.name}-${asset.owner}-${i}`}>
+                          <td className="px-2.5 py-1.5 pl-4.5 text-(--color-text-secondary)">{asset.name}</td>
+                          <td className="px-2.5 py-1.5">
                             <span
-                              style={{
-                                background: CATEGORY_COLORS[asset.category] ?? '#6b7280',
-                                color: '#ffffff',
-                                padding: '2px 7px',
-                                borderRadius: '999px',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                              }}
+                              className="rounded-sm px-1.5 py-0.5 text-[11px] font-bold text-white"
+                              style={{ background: CATEGORY_COLORS[asset.category] ?? 'var(--color-text-muted)' }}
                             >
                               {asset.typeCode}
                             </span>
                           </td>
-                          <td style={{ padding: '7px 10px', color: '#6b7280' }}>{asset.owner}</td>
-                          <td
-                            style={{
-                              padding: '7px 10px',
-                              textAlign: 'right',
-                              fontFamily: 'monospace',
-                              fontWeight: 600,
-                              color: '#111827',
-                            }}
-                          >
+                          <td className="px-2.5 py-1.5 text-(--color-text-secondary)">{asset.owner}</td>
+                          <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-(--color-text-primary)">
                             {formatMoney(asset.valueMid)}
                           </td>
                         </tr>
@@ -448,16 +260,8 @@ export default function NetWorthSection({
                   </table>
                 </div>
               </div>
-              <div className="px-1 sm:pl-8 sm:pr-6" style={{ marginTop: '8px', marginBottom: '12px' }}>
-                <div
-                  style={{
-                    textAlign: 'right',
-                    color: '#111827',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    fontFamily: 'monospace',
-                  }}
-                >
+              <div className="mt-2 mb-3 px-1 sm:pl-8 sm:pr-6">
+                <div className="text-right font-mono text-[13px] font-bold text-(--color-text-primary)">
                   Total Asset Value: {formatMoney(totalListedAssets)}
                 </div>
               </div>
@@ -466,59 +270,24 @@ export default function NetWorthSection({
 
           {netWorth.liabilities.length > 0 && (
             <>
-              <h3
-                className="ml-1 sm:ml-4"
-                style={{
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  color: '#111827',
-                  marginBottom: '10px',
-                  marginTop: '28px',
-                }}
-              >
+              <h3 className="mt-7 mb-2.5 ml-1 text-lg font-bold text-(--color-text-primary) sm:ml-4">
                 Liabilities
               </h3>
               <div className="overflow-x-auto sm:pl-4">
-                <table
-                  style={{
-                    width: '100%',
-                    fontSize: '13px',
-                    borderCollapse: 'collapse',
-                  }}
-                >
+                <table className="w-full border-collapse text-[13px]">
                   <thead>
-                    <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                      <th
-                        style={{ textAlign: 'left', padding: '6px 10px 6px 18px', color: '#6b7280', fontWeight: 600 }}
-                      >
-                        Creditor
-                      </th>
-                      <th
-                        style={{ textAlign: 'left', padding: '6px 10px', color: '#6b7280', fontWeight: 600 }}
-                      >
-                        Type
-                      </th>
-                      <th
-                        style={{ textAlign: 'right', padding: '6px 10px', color: '#6b7280', fontWeight: 600 }}
-                      >
-                        Est. Amount
-                      </th>
+                    <tr className="border-b-2 border-(--color-border)">
+                      <th className="px-2.5 py-1.5 pl-4.5 text-left font-semibold text-(--color-text-muted)">Creditor</th>
+                      <th className="px-2.5 py-1.5 text-left font-semibold text-(--color-text-muted)">Type</th>
+                      <th className="px-2.5 py-1.5 text-right font-semibold text-(--color-text-muted)">Est. Amount</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-(--color-border)">
                     {netWorth.liabilities.map((l, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td style={{ padding: '7px 10px 7px 18px', color: '#6b7280' }}>{l.creditor}</td>
-                        <td style={{ padding: '7px 10px', color: '#6b7280' }}>{l.loanType}</td>
-                        <td
-                          style={{
-                            padding: '7px 10px',
-                            textAlign: 'right',
-                            fontFamily: 'monospace',
-                            color: '#111827',
-                            fontWeight: 600,
-                          }}
-                        >
+                      <tr key={i}>
+                        <td className="px-2.5 py-1.5 pl-4.5 text-(--color-text-secondary)">{l.creditor}</td>
+                        <td className="px-2.5 py-1.5 text-(--color-text-secondary)">{l.loanType}</td>
+                        <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-(--color-text-primary)">
                           ({formatMoney(l.valueMid)})
                         </td>
                       </tr>

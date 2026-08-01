@@ -1,86 +1,67 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces */
+  --color-bg: #ffffff;
+  --color-bg-subtle: #f8fafc; /* table header rows only — the one off-white surface */
+
+  /* Text */
+  --color-text-primary: #111827;
+  --color-text-secondary: #4b5563;
+  --color-text-muted: #9ca3af;
+
+  /* Structure */
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+
+  /* Accent (interactive: links, active-tab underline, selection state) */
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+
+  /* Semantic values — each has a light-tint background for small status chips
+     (e.g. a vote-result badge), following the same pattern as the party tokens below.
+     This exact pair is validated colorblind-safe as a bare hue pair (no secondary
+     encoding) via the dataviz skill's palette validator — keep it as the one
+     canonical buy/sell pair everywhere, including chart marks with no other cue. */
+  --color-positive: #10b981; /* buy / gains */
+  --color-positive-bg: #f0fdf4;
+  --color-negative: #ef4444; /* sell / losses */
+  --color-negative-bg: #fef2f2;
+
+  /* Ticker chip — reserved for stock ticker tags only, not chamber/party */
+  --color-chip-bg: #ede9fe;
+  --color-chip-text: #6d28d9;
+
+  /* Party accent — used ONLY on Avatar fill/initial color, nowhere else.
+     Each has a light tint (avatar background) + saturated text color (initials),
+     matching the chip convention above rather than a solid saturated fill. The
+     three text colors (accent/negative/violet) are validated colorblind-safe as
+     a bare categorical triple via the dataviz palette validator. */
+  --color-party-d: var(--color-accent);
+  --color-party-d-bg: #dbeafe;
+  --color-party-r: var(--color-negative);
+  --color-party-r-bg: #fee2e2;
+  --color-party-i: #7c3aed;
+  --color-party-i-bg: #ede9fe;
+  --color-party-neutral: var(--color-text-secondary);
+  --color-party-neutral-bg: #f1f5f9;
+
+  /* Radius — small and boxy; --radius-full reserved for avatars/status dots */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-full: 9999px;
+
+  --color-ink: #0f172a; /* footer background */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: #ffffff !important;
-  color: #171717;
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-.site-nav-wrap {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  backdrop-filter: blur(10px);
-  background: linear-gradient(90deg, #ef4444 0%, #2563eb 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
-}
-
-.site-nav-inner {
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: 12px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.site-nav-links {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.site-nav-pill {
-  font-size: 14px;
-  font-weight: 700;
-  color: #ffffff;
-  text-decoration: none;
-  padding: 7px 12px;
-  border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.2);
-  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.site-nav-pill:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.24);
-  border-color: rgba(255, 255, 255, 0.6);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
-}
-
-.site-nav-pill-active {
-  background: rgba(15, 23, 42, 0.28);
-  border-color: rgba(255, 255, 255, 0.75);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 6px 16px rgba(15, 23, 42, 0.3);
-}
-
-.site-nav-brand {
-  color: #ffffff;
-  text-decoration: none;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  font-size: 20px;
-  line-height: 1;
-  text-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.site-nav-brand:hover {
-  transform: translateY(-1px);
-  opacity: 0.9;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
 }

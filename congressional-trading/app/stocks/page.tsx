@@ -53,67 +53,38 @@ export default function StocksPage() {
       .sort((a, b) => b[sortKey] - a[sortKey]);
   }, [stocks, query, sortKey]);
 
-  const filterBtnBase: React.CSSProperties = {
-    padding: '5px 14px',
-    borderRadius: '9999px',
-    fontSize: '13px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    border: '1.5px solid transparent',
-    transition: 'all 0.15s',
-    lineHeight: '1.4',
-  };
-
-  function filterBtn(active: boolean, activeColor: string): React.CSSProperties {
-    return active
-      ? { ...filterBtnBase, background: activeColor, color: '#fff', borderColor: activeColor }
-      : { ...filterBtnBase, background: '#f1f5f9', color: '#475569', borderColor: '#e2e8f0' };
+  function filterBtnClass(active: boolean): string {
+    return `cursor-pointer rounded-sm border px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 ${
+      active
+        ? 'border-(--color-accent) bg-(--color-accent) text-white'
+        : 'border-(--color-border) text-(--color-text-secondary) hover:border-(--color-accent) hover:text-(--color-accent)'
+    }`;
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div
-        className="text-white"
-        style={{ background: 'linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #2563eb 100%)', paddingBottom: '32px' }}
-      >
-        <div className="mx-auto max-w-5xl px-6" style={{ paddingTop: '24px' }}>
-          <Link href="/" className="inline-block text-sm text-white/70 hover:text-white mb-5 transition">
+      <div className="border-b border-(--color-border) px-6 pb-6 pt-6">
+        <div className="mx-auto max-w-5xl">
+          <Link href="/" className="mb-4 inline-block text-sm text-(--color-text-secondary) transition hover:text-(--color-text-primary)">
             ← Back to home
           </Link>
-          <div className="flex items-end justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">The Congressional Watchlist</h1>
-              <p className="mt-2 text-white/75 text-base max-w-xl">
-                These are the stocks Congress is buying and selling. Coincidence or conviction? You decide.
-              </p>
-              <p className="mt-1 text-white/50 text-sm">
-                {loading ? '…' : `${stocks.length} tickers traded by Congress`}
-              </p>
-            </div>
-          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-(--color-text-primary) sm:text-3xl">The Congressional Watchlist</h1>
+          <p className="mt-2 max-w-xl text-sm text-(--color-text-secondary)">
+            These are the stocks Congress is buying and selling. Coincidence or conviction? You decide.
+          </p>
+          <p className="mt-1 text-xs text-(--color-text-muted)">
+            {loading ? '…' : `${stocks.length} tickers traded by Congress`}
+          </p>
 
           {/* Search */}
-          <div className="mt-6">
+          <div className="mt-5">
             <input
               type="text"
               placeholder="Search ticker symbol…"
               value={query}
               onChange={(e) => setQuery(e.target.value.toUpperCase())}
-              style={{
-                width: '100%',
-                maxWidth: '320px',
-                borderRadius: '10px',
-                border: 'none',
-                background: 'rgba(255,255,255,0.15)',
-                color: '#fff',
-                padding: '10px 16px',
-                fontSize: '14px',
-                outline: 'none',
-                boxSizing: 'border-box',
-                fontFamily: 'monospace',
-              }}
-              className="placeholder:text-white/50 focus:bg-white/25"
+              className="w-full max-w-xs rounded-sm border border-(--color-border) px-3.5 py-2 font-mono text-sm text-(--color-text-primary) outline-none placeholder:text-(--color-text-muted) focus:border-(--color-accent)"
             />
           </div>
         </div>
@@ -122,25 +93,24 @@ export default function StocksPage() {
       {/* Filters + list */}
       <div className="mx-auto max-w-5xl px-6 py-6">
         {/* Filter row */}
-        <div className="flex flex-wrap gap-2 mb-5 items-center">
-          {/* Sort */}
-          <button style={filterBtn(sortKey === 'totalAmount', '#0f766e')} onClick={() => setSortKey('totalAmount')}>Total Traded</button>
-          <button style={filterBtn(sortKey === 'tradeCount', '#0f766e')} onClick={() => setSortKey('tradeCount')}>Trade Count</button>
-          <button style={filterBtn(sortKey === 'buyAmount', '#15803d')} onClick={() => setSortKey('buyAmount')}>Buy Amount</button>
-          <button style={filterBtn(sortKey === 'sellAmount', '#b91c1c')} onClick={() => setSortKey('sellAmount')}>Sell Amount</button>
-          <span className="ml-0 text-xs text-gray-400 sm:ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          <button className={filterBtnClass(sortKey === 'totalAmount')} onClick={() => setSortKey('totalAmount')}>Total Traded</button>
+          <button className={filterBtnClass(sortKey === 'tradeCount')} onClick={() => setSortKey('tradeCount')}>Trade Count</button>
+          <button className={filterBtnClass(sortKey === 'buyAmount')} onClick={() => setSortKey('buyAmount')}>Buy Amount</button>
+          <button className={filterBtnClass(sortKey === 'sellAmount')} onClick={() => setSortKey('sellAmount')}>Sell Amount</button>
+          <span className="ml-0 text-xs text-(--color-text-muted) sm:ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-24">
-            <p className="text-gray-400">Loading…</p>
+            <p className="text-(--color-text-muted)">Loading…</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-hidden rounded-md border border-(--color-border) bg-white">
             {filtered.length === 0 ? (
-              <p className="text-center text-gray-400 py-12 text-sm">No results found.</p>
+              <p className="py-12 text-center text-sm text-(--color-text-muted)">No results found.</p>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-(--color-border)">
                 {filtered.map((s, i) => {
                   const buyPct = s.totalAmount > 0 ? (s.buyAmount / s.totalAmount) * 100 : 0;
                   const sellPct = s.totalAmount > 0 ? (s.sellAmount / s.totalAmount) * 100 : 0;
@@ -150,40 +120,37 @@ export default function StocksPage() {
                       onMouseEnter={() => router.prefetch(`/stocks/${s.ticker}`)}
                       onFocus={() => router.prefetch(`/stocks/${s.ticker}`)}
                       onClick={() => router.push(`/stocks/${s.ticker}`)}
-                      className="w-full text-left hover:bg-teal-50 transition-colors cursor-pointer"
-                      style={{ display: 'block', padding: '12px 20px' }}
+                      className="block w-full cursor-pointer px-5 py-3 text-left transition-colors duration-150 hover:bg-(--color-bg-subtle)"
                     >
                       <div className="flex w-full flex-wrap items-center gap-2 sm:gap-3">
                         {/* Rank */}
-                        <span style={{ width: '22px', textAlign: 'right', fontSize: '12px', color: '#9ca3af', flexShrink: 0 }}>
+                        <span className="w-[22px] shrink-0 text-right text-xs text-(--color-text-muted)">
                           {i + 1}
                         </span>
 
                         {/* Ticker */}
-                        <span style={{ width: '64px', fontWeight: 700, fontSize: '15px', fontFamily: 'monospace', color: '#111827', flexShrink: 0 }}>
+                        <span className="w-16 shrink-0 font-mono text-[15px] font-bold text-(--color-text-primary)">
                           {s.ticker}
                         </span>
 
                         {/* Bar */}
-                        <div style={{ flex: 1, minWidth: '100px', position: 'relative', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${buyPct}%`, background: '#10b981', borderRadius: '4px 0 0 4px' }} />
-                          <div style={{ position: 'absolute', left: `${buyPct}%`, top: 0, height: '100%', width: `${sellPct}%`, background: '#ef4444' }} />
-                          {/* grey remainder */}
-                          <div style={{ position: 'absolute', left: `${Math.min(buyPct + sellPct, 100)}%`, top: 0, height: '100%', width: `${Math.max(0, 100 - buyPct - sellPct)}%`, background: '#e2e8f0' }} />
+                        <div className="relative h-2 min-w-[100px] flex-1 overflow-hidden rounded-sm bg-(--color-bg-subtle)">
+                          <div className="absolute left-0 top-0 h-full rounded-l-sm bg-(--color-positive)" style={{ width: `${buyPct}%` }} />
+                          <div className="absolute top-0 h-full bg-(--color-negative)" style={{ left: `${buyPct}%`, width: `${sellPct}%` }} />
                         </div>
 
                         {/* Amounts */}
-                        <div className="ml-0 flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto sm:gap-3" style={{ flexShrink: 0 }}>
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#111827', minWidth: '0', textAlign: 'left' }} className="sm:min-w-17.5 sm:text-right">
+                        <div className="ml-0 flex w-full flex-wrap items-center gap-2 shrink-0 sm:ml-auto sm:w-auto sm:gap-3">
+                          <span className="min-w-0 text-left text-[13px] font-bold text-(--color-text-primary) sm:min-w-17.5 sm:text-right">
                             {formatMoney(s.totalAmount)}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#10b981', minWidth: '0', textAlign: 'left' }} className="sm:min-w-12 sm:text-right">
+                          <span className="min-w-0 text-left text-[11px] text-(--color-positive) sm:min-w-12 sm:text-right">
                             {s.buyCount > 0 ? `↑ ${formatMoney(s.buyAmount)}` : ''}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#ef4444', minWidth: '0', textAlign: 'left' }} className="sm:min-w-12 sm:text-right">
+                          <span className="min-w-0 text-left text-[11px] text-(--color-negative) sm:min-w-12 sm:text-right">
                             {s.sellCount > 0 ? `↓ ${formatMoney(s.sellAmount)}` : ''}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#9ca3af', minWidth: '0', textAlign: 'left' }} className="sm:min-w-14 sm:text-right">
+                          <span className="min-w-0 text-left text-[11px] text-(--color-text-muted) sm:min-w-14 sm:text-right">
                             {s.tradeCount} trade{s.tradeCount !== 1 ? 's' : ''}
                           </span>
                         </div>

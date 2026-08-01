@@ -19,53 +19,28 @@ export default function StockDisclosuresMenu({ disclosures }: { disclosures: Ann
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 overflow-hidden">
+    <div className="overflow-hidden rounded-md border border-(--color-border) bg-white p-6">
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          textAlign: 'left',
-          padding: '10px 12px',
-          background: '#ffffff',
-          border: '1px solid #e5e7eb',
-          color: '#1f2937',
-          fontSize: '13px',
-          fontWeight: 700,
-          cursor: 'pointer',
-          borderRadius: isOpen ? '8px 8px 0 0' : '8px',
-        }}
+        className={`flex w-full cursor-pointer items-center justify-between border border-(--color-border) bg-white px-3 py-2.5 text-left text-[13px] font-bold text-(--color-text-primary) ${
+          isOpen ? 'rounded-t-sm' : 'rounded-sm'
+        }`}
       >
         <span>Stock Disclosures</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#4b5563' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600 }}>{disclosures.length}</span>
-          <span style={{ fontSize: '12px', lineHeight: 1 }}>{isOpen ? '▾' : '▸'}</span>
+        <span className="inline-flex items-center gap-2 text-(--color-text-secondary)">
+          <span className="text-xs font-semibold">{disclosures.length}</span>
+          <span className="text-xs leading-none">{isOpen ? '▾' : '▸'}</span>
         </span>
       </button>
 
       <div
-        style={{
-          maxHeight: isOpen ? '300px' : '0px',
-          opacity: isOpen ? 1 : 0,
-          transition: 'max-height 280ms ease, opacity 220ms ease',
-          overflow: 'hidden',
-        }}
+        className="overflow-hidden transition-[max-height,opacity] duration-300 ease-out"
+        style={{ maxHeight: isOpen ? '300px' : '0px', opacity: isOpen ? 1 : 0 }}
       >
-        <div
-          style={{
-            maxHeight: '300px',
-            overflowY: 'auto',
-            padding: '6px',
-            border: '1px solid #e5e7eb',
-            borderTop: 'none',
-            borderRadius: '0 0 8px 8px',
-          }}
-        >
+        <div className="max-h-[300px] overflow-y-auto rounded-b-sm border border-t-0 border-(--color-border) p-1.5">
           {disclosures.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '12px', margin: '8px 0' }}>
+            <p className="my-2 text-center text-xs text-(--color-text-secondary)">
               No disclosures available.
             </p>
           ) : (
@@ -79,30 +54,12 @@ export default function StockDisclosuresMenu({ disclosures }: { disclosures: Ann
                   href={url}
                   target="_blank"
                   rel="noreferrer"
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '7px 8px',
-                    borderRadius: '6px',
-                    marginBottom: '4px',
-                    background: '#ffffff',
-                    border: '1px solid #f3f4f6',
-                    textDecoration: 'none',
-                  }}
+                  className="mb-1 flex items-center justify-between gap-2.5 rounded-sm border border-(--color-border) bg-white px-2 py-1.5 transition-colors duration-150 hover:border-(--color-accent) hover:bg-(--color-bg-subtle)"
                 >
-                  <span style={{ color: '#111827', fontSize: '12px', fontWeight: 600 }}>
+                  <span className="text-xs font-semibold text-(--color-text-primary)">
                     {d.filing_year} {d.filing_date ? `(${d.filing_date})` : ''}
                   </span>
-                  <span
-                    style={{
-                      color: '#1d4ed8',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
+                  <span className="whitespace-nowrap text-[11px] font-bold text-(--color-accent)">
                     View
                   </span>
                 </a>

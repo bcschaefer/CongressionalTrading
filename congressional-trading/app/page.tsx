@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import HomeTradeChartCard from './components/HomeTradeChartCard';
 import ProlificTradersTable from './components/ProlificTradersTable';
 import NetWorthLineChart, { type NetWorthHistoryPoint } from './components/NetWorthLineChart';
+import StatCard from './components/ui/StatCard';
 import {
   getTradeDirection,
   groupTradesByCongressman,
@@ -24,46 +25,34 @@ const SITE_STATS = [
 
 function HeroBanner() {
   return (
-    <div
-      className="text-white"
-      style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 50%, #ef4444 100%)', padding: '48px 24px 40px' }}
-    >
-      <div className="mx-auto max-w-3xl text-center">
-        <p className="mb-3 inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-xs font-bold uppercase tracking-widest text-white/80 backdrop-blur-sm">
-          Transparency in Public Office
-        </p>
-        <h1 className="text-4xl font-black leading-tight tracking-tight sm:text-5xl">
-          Your lawmakers are<br />
-          <span style={{ background: 'linear-gradient(90deg, #fde68a, #fb923c)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            trading stocks.
-          </span>
+    <div className="border-b border-(--color-border) px-4 pb-8 pt-10 md:px-8">
+      <div className="mx-auto max-w-5xl">
+        <h1 className="text-3xl font-bold leading-tight tracking-tight text-(--color-text-primary) sm:text-4xl">
+          Your lawmakers are <span className="text-(--color-accent)">trading</span> <span className="text-(--color-negative)">stocks</span>.
         </h1>
-        <p className="mx-auto mt-4 max-w-xl text-lg font-medium text-white/75">
+        <p className="mt-3 max-w-xl text-base text-(--color-text-secondary)">
           We track every disclosed congressional trade, so you can see exactly what influences their laws.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <a href="/representatives" className="rounded-full border border-white/40 bg-white/10 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-white/20">
+        <div className="mt-5 flex flex-wrap gap-2.5">
+          <a
+            href="/representatives"
+            className="cursor-pointer rounded-(--radius-sm) bg-(--color-accent) px-4 py-2 text-sm font-semibold text-white transition-all duration-150 hover:-translate-y-0.5 hover:bg-(--color-accent-hover) hover:shadow-md"
+          >
             Browse Representatives
           </a>
-          <a href="/stocks" className="rounded-full bg-white px-6 py-2.5 text-sm font-bold text-purple-700 transition hover:bg-white/90">
+          <a
+            href="/stocks"
+            className="cursor-pointer rounded-(--radius-sm) border border-(--color-border) px-4 py-2 text-sm font-semibold text-(--color-text-primary) transition-all duration-150 hover:-translate-y-0.5 hover:border-(--color-accent) hover:text-(--color-accent) hover:shadow-sm"
+          >
             Explore Stocks
           </a>
         </div>
-      </div>
-    </div>
-  );
-}
 
-function StatsBar() {
-  return (
-    <div style={{ background: 'rgba(15,23,42,0.94)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="mx-auto flex max-w-4xl flex-wrap justify-center gap-6 px-6 py-3 sm:gap-10">
-        {SITE_STATS.map(({ label, value }) => (
-          <div key={label} className="flex items-center gap-2 text-center">
-            <span className="text-lg font-black text-white sm:text-xl">{value}</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-white/40">{label}</span>
-          </div>
-        ))}
+        <div className="mt-6 flex flex-wrap gap-3">
+          {SITE_STATS.map(({ label, value }) => (
+            <StatCard key={label} label={label} value={value} />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -73,18 +62,18 @@ type DetailData = { totalAssets: number; totalLiabilities: number; netWorth: num
 
 function NetWorthDetailPanel({ year, data, loading }: { year: number; data: DetailData | null; loading: boolean }) {
   return (
-    <div className="mt-3 rounded-[10px] border border-sky-200 bg-sky-50 p-3 text-[13px]">
-      <div className="mb-1.5 font-bold text-sky-700">{year} Breakdown</div>
+    <div className="mt-3 rounded-(--radius-sm) border border-(--color-border) bg-(--color-bg-subtle) p-3 text-[13px]">
+      <div className="mb-1.5 font-bold text-(--color-text-primary)">{year} Breakdown</div>
       {loading ? (
-        <div className="text-gray-500">Parsing PDF…</div>
+        <div className="text-(--color-text-secondary)">Parsing PDF…</div>
       ) : data ? (
         <div className="flex flex-wrap gap-5">
-          <span>Assets: <b className="text-green-700">${(data.totalAssets / 1_000_000).toFixed(2)}M</b></span>
-          <span>Liabilities: <b className="text-red-600">${(data.totalLiabilities / 1_000_000).toFixed(2)}M</b></span>
-          <span>Net Worth: <b className="text-blue-700">${(data.netWorth / 1_000_000).toFixed(2)}M</b></span>
+          <span>Assets: <b className="text-(--color-positive)">${(data.totalAssets / 1_000_000).toFixed(2)}M</b></span>
+          <span>Liabilities: <b className="text-(--color-negative)">${(data.totalLiabilities / 1_000_000).toFixed(2)}M</b></span>
+          <span>Net Worth: <b className="text-(--color-accent)">${(data.netWorth / 1_000_000).toFixed(2)}M</b></span>
         </div>
       ) : (
-        <div className="text-gray-400">No breakdown available for this year.</div>
+        <div className="text-(--color-text-muted)">No breakdown available for this year.</div>
       )}
     </div>
   );
@@ -194,16 +183,13 @@ export default function Hero() {
   return (
     <div>
       <HeroBanner />
-      <StatsBar />
 
-      <div className="px-4 py-8 md:px-8" style={{ background: 'linear-gradient(135deg, #f9fafb 0%, #eff6ff 100%)' }}>
+      <div className="px-4 py-8 md:px-8">
         <div className="mx-auto flex max-w-400 flex-col items-stretch gap-8 lg:flex-row">
           <div className="hidden w-full min-w-0 md:block lg:w-1/2">
             <div className="mb-6">
-              <h2 className="mb-3 text-center text-2xl font-black tracking-wide text-gray-800 sm:text-3xl">
-                Estimated Net Worth
-              </h2>
-              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+              <h2 className="mb-3 text-xl font-bold text-foreground">Estimated Net Worth</h2>
+              <div className="rounded-md border border-(--color-border) bg-white p-4">
                 <NetWorthLineChart
                   data={netWorthHistory}
                   isLoading={netWorthLoading || isLoading}
@@ -219,7 +205,7 @@ export default function Hero() {
                 )}
               </div>
             </div>
-            <h2 className="mb-3 text-center text-2xl font-black tracking-wide text-gray-800 sm:text-3xl">Trades by Year</h2>
+            <h2 className="mb-3 text-xl font-bold text-foreground">Trades by Year</h2>
             <HomeTradeChartCard
               isLoading={isLoading}
               emptyMessage="No trades in current data"
@@ -229,35 +215,41 @@ export default function Hero() {
           </div>
 
           <div className="w-full min-w-0 lg:w-1/2">
-            <h2 className="mb-2 text-center text-2xl font-black tracking-wide text-purple-800 sm:text-3xl">
-              {sortMode === 'prolific' ? 'Most Prolific Traders' : 'Most Recent Traders'}
-            </h2>
-            <p className="mb-3 text-center text-sm font-medium text-gray-500">
+            <div className="mb-2 flex items-baseline justify-between gap-2">
+              <h2 className="text-xl font-bold text-foreground">
+                {sortMode === 'prolific' ? 'Most Prolific Traders' : 'Most Recent Traders'}
+              </h2>
+              <a
+                href="/representatives"
+                className="group shrink-0 cursor-pointer text-sm font-medium text-(--color-accent) transition-colors hover:text-(--color-accent-hover)"
+              >
+                See all <span className="inline-block transition-transform duration-150 group-hover:translate-x-0.5">→</span>
+              </a>
+            </div>
+            <p className="mb-3 text-sm text-(--color-text-secondary)">
               {sortMode === 'prolific'
                 ? 'Ranked by trade count — hover to preview trades'
                 : 'Ranked by most recent disclosure — hover to preview trades'}
             </p>
-            <div className="mb-6 flex justify-center">
-              <div className="inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => setSortMode('prolific')}
-                  className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors ${
-                    sortMode === 'prolific' ? 'bg-purple-700 text-white' : 'text-gray-500 hover:text-purple-700'
-                  }`}
-                >
-                  Prolific
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSortMode('recent')}
-                  className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors ${
-                    sortMode === 'recent' ? 'bg-purple-700 text-white' : 'text-gray-500 hover:text-purple-700'
-                  }`}
-                >
-                  Recent
-                </button>
-              </div>
+            <div className="mb-6 inline-flex rounded-(--radius-sm) border border-(--color-border)">
+              <button
+                type="button"
+                onClick={() => setSortMode('prolific')}
+                className={`cursor-pointer rounded-l-[5px] px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors duration-150 ${
+                  sortMode === 'prolific' ? 'bg-(--color-accent) text-white' : 'text-(--color-text-secondary) hover:bg-(--color-bg-subtle) hover:text-(--color-text-primary)'
+                }`}
+              >
+                Prolific
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortMode('recent')}
+                className={`cursor-pointer rounded-r-[5px] border-l border-(--color-border) px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors duration-150 ${
+                  sortMode === 'recent' ? 'bg-(--color-accent) text-white' : 'text-(--color-text-secondary) hover:bg-(--color-bg-subtle) hover:text-(--color-text-primary)'
+                }`}
+              >
+                Recent
+              </button>
             </div>
             <ProlificTradersTable
               groups={displayedGroups}

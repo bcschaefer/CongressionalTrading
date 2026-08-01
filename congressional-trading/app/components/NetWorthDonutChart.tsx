@@ -42,7 +42,7 @@ export default function NetWorthDonutChart({
 
   if (entries.length === 0) {
     return (
-      <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '14px', marginBottom: '10px' }}>
+      <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '10px' }}>
         No assets to display
       </p>
     );
@@ -74,7 +74,7 @@ export default function NetWorthDonutChart({
         category,
         value: value.total,
         path: arcPath(arcDatum) ?? '',
-        color: CATEGORY_COLORS[category] ?? '#6b7280',
+        color: CATEGORY_COLORS[category] ?? 'var(--color-text-muted)',
         pct: total > 0 ? (value.total / total) * 100 : 0,
       };
     });
@@ -122,13 +122,12 @@ export default function NetWorthDonutChart({
               position: 'absolute',
               left: `${Math.min(hovered.x + 12, size - 140)}px`,
               top: `${Math.max(hovered.y - 40, 8)}px`,
-              background: '#111827',
+              background: 'var(--color-ink)',
               color: '#ffffff',
               borderRadius: '8px',
               padding: '8px 10px',
               fontSize: '11px',
               lineHeight: 1.35,
-              boxShadow: '0 8px 20px rgba(15, 23, 42, 0.28)',
               pointerEvents: 'none',
               zIndex: 2,
               minWidth: '128px',
@@ -150,10 +149,10 @@ export default function NetWorthDonutChart({
             pointerEvents: 'none',
           }}
         >
-          <span style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Total Assets
           </span>
-          <span style={{ fontSize: '14px', fontWeight: 800, color: '#111827' }}>{formatMoney(total)}</span>
+          <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-text-primary)' }}>{formatMoney(total)}</span>
         </div>
       </div>
 
@@ -181,7 +180,7 @@ export default function NetWorthDonutChart({
               />
               <span style={{ fontSize: '13px', color: '#1f2937', fontWeight: 600 }}>{s.category}</span>
             </div>
-            <span style={{ fontSize: '12px', color: '#6b7280' }}>
+            <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
               {s.pct.toFixed(0)}% ({formatMoney(s.value)})
             </span>
           </div>

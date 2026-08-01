@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StockPriceChart from '@/app/components/StockPriceChart';
+import StatCard from '@/app/components/ui/StatCard';
+import Avatar from '@/app/components/ui/Avatar';
+import { partyInitial } from '@/lib/party';
 
 type Trade = {
   id: number;
@@ -65,21 +68,6 @@ function tradeDirection(type: string | null): 'buy' | 'sell' | 'other' {
   return 'other';
 }
 
-function partyColor(party: string | null): string {
-  const p = (party ?? '').trim().toUpperCase();
-  if (p === 'D' || p.startsWith('DEM')) return '#1d4ed8';
-  if (p === 'R' || p.startsWith('REP')) return '#b91c1c';
-  return '#6b7280';
-}
-
-function partyLabel(party: string | null): string {
-  const p = (party ?? '').trim().toUpperCase();
-  if (p === 'D' || p.startsWith('DEM')) return 'D';
-  if (p === 'R' || p.startsWith('REP')) return 'R';
-  if (p === 'I' || p.startsWith('IND')) return 'I';
-  return party ?? '?';
-}
-
 export default function StockDetailPage() {
   const { ticker } = useParams<{ ticker: string }>();
   const router = useRouter();
@@ -122,17 +110,17 @@ export default function StockDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#9ca3af' }}>Loading…</p>
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <p className="text-(--color-text-muted)">Loading…</p>
       </div>
     );
   }
 
   if (notFound || !data) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-        <p style={{ color: '#374151', fontSize: '18px', fontWeight: 600 }}>Ticker not found</p>
-        <Link href="/stocks" style={{ color: '#0d9488', textDecoration: 'underline', fontSize: '14px' }}>← Back to Stocks</Link>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white">
+        <p className="text-lg font-semibold text-(--color-text-secondary)">Ticker not found</p>
+        <Link href="/stocks" className="text-sm text-(--color-accent) underline">← Back to Stocks</Link>
       </div>
     );
   }
@@ -171,86 +159,66 @@ export default function StockDetailPage() {
     return year >= yearRange.start && year <= yearRange.end;
   });
 
-  const statCard = (label: string, value: string, sub?: string, color?: string) => (
-    <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '16px 20px', minWidth: '0', flex: '1 1 220px' }}>
-      <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
-      <div style={{ fontSize: '22px', fontWeight: 700, color: color ?? '#111827', marginTop: '4px' }}>{value}</div>
-      {sub && <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>{sub}</div>}
-    </div>
-  );
-
-  const filterBtnBase: React.CSSProperties = {
-    padding: '5px 14px',
-    borderRadius: '9999px',
-    fontSize: '13px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    border: '1.5px solid transparent',
-    transition: 'all 0.15s',
-    lineHeight: '1.4',
-  };
-  function filterBtn(active: boolean, activeColor: string): React.CSSProperties {
-    return active
-      ? { ...filterBtnBase, background: activeColor, color: '#fff', borderColor: activeColor }
-      : { ...filterBtnBase, background: '#f1f5f9', color: '#475569', borderColor: '#e2e8f0' };
+  function filterBtnClass(active: boolean): string {
+    return `cursor-pointer rounded-sm border px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 ${
+      active
+        ? 'border-(--color-accent) bg-(--color-accent) text-white'
+        : 'border-(--color-border) text-(--color-text-secondary) hover:border-(--color-accent) hover:text-(--color-accent)'
+    }`;
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div
-        className="text-white"
-        style={{ background: 'linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #2563eb 100%)', paddingBottom: '32px' }}
-      >
-        <div className="mx-auto max-w-5xl px-6" style={{ paddingTop: '24px' }}>
-          <Link href="/stocks" className="inline-block text-sm text-white/70 hover:text-white mb-5 transition">
+      <div className="border-b border-(--color-border) px-6 pb-6 pt-6">
+        <div className="mx-auto max-w-5xl">
+          <Link href="/stocks" className="mb-4 inline-block text-sm text-(--color-text-secondary) transition hover:text-(--color-text-primary)">
             ← Back to Stocks
           </Link>
-          <h1 style={{ fontSize: 'clamp(2rem, 7vw, 3rem)', fontWeight: 800, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
+          <h1 className="font-mono text-4xl font-bold tracking-tight text-(--color-text-primary) sm:text-5xl">
             {data.ticker}
           </h1>
-          <p className="mt-1 text-white/60 text-sm">{data.tradeCount} congressional trades recorded</p>
+          <p className="mt-1 text-sm text-(--color-text-secondary)">{data.tradeCount} congressional trades recorded</p>
 
           {/* Buy/sell bar */}
-          <div style={{ marginTop: '16px', height: '10px', background: 'rgba(255,255,255,0.2)', borderRadius: '5px', overflow: 'hidden', maxWidth: '400px' }}>
-            <div style={{ display: 'flex', height: '100%' }}>
-              <div style={{ width: `${buyPct}%`, background: '#10b981' }} />
-              <div style={{ width: `${sellPct}%`, background: '#ef4444' }} />
+          <div className="mt-4 h-2 max-w-sm overflow-hidden rounded-sm bg-(--color-bg-subtle)">
+            <div className="flex h-full">
+              <div className="bg-(--color-positive)" style={{ width: `${buyPct}%` }} />
+              <div className="bg-(--color-negative)" style={{ width: `${sellPct}%` }} />
             </div>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 16px', marginTop: '6px', fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
-            <span style={{ color: '#6ee7b7' }}>↑ {buyPct.toFixed(0)}% buys</span>
-            <span style={{ color: '#fca5a5' }}>↓ {sellPct.toFixed(0)}% sells</span>
+          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+            <span className="text-(--color-positive)">↑ {buyPct.toFixed(0)}% buys</span>
+            <span className="text-(--color-negative)">↓ {sellPct.toFixed(0)}% sells</span>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6">
         {/* Stat cards */}
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          {statCard('Total Traded', formatMoney(data.totalAmount), `${data.tradeCount} trades`)}
-          {statCard('Purchased', formatMoney(data.buyAmount), `${data.members.filter(m => m.buyAmount > 0).length} members`, '#10b981')}
-          {statCard('Sold', formatMoney(data.sellAmount), `${data.members.filter(m => m.sellAmount > 0).length} members`, '#ef4444')}
-          {statCard('Members', String(data.members.length), 'traded this stock')}
+        <div className="flex flex-wrap gap-3">
+          <StatCard label="Total Traded" value={formatMoney(data.totalAmount)} sub={`${data.tradeCount} trades`} />
+          <StatCard
+            label="Purchased"
+            value={formatMoney(data.buyAmount)}
+            sub={`${data.members.filter((m) => m.buyAmount > 0).length} members`}
+            valueColor="var(--color-positive)"
+          />
+          <StatCard
+            label="Sold"
+            value={formatMoney(data.sellAmount)}
+            sub={`${data.members.filter((m) => m.sellAmount > 0).length} members`}
+            valueColor="var(--color-negative)"
+          />
+          <StatCard label="Members" value={String(data.members.length)} sub="traded this stock" />
         </div>
 
         {/* Year range filter */}
         {availableYears.length > 0 && minYear !== null && maxYear !== null && (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '12px',
-              maxWidth: '320px',
-            }}
-          >
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Start</span>
+          <div className="flex max-w-xs flex-col gap-2 rounded-md border border-(--color-border) bg-white p-3">
+            <div className="grid grid-cols-2 gap-2.5">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-(--color-text-secondary)">Start</span>
                 <select
                   value={rangeStart ?? minYear}
                   onChange={(e) => {
@@ -260,15 +228,7 @@ export default function StockDetailPage() {
                       return { start: Math.min(nextStart, safeEnd), end: safeEnd };
                     });
                   }}
-                  style={{
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    padding: '7px 10px',
-                    fontSize: '13px',
-                    color: '#0f172a',
-                    background: '#f8fafc',
-                    fontWeight: 600,
-                  }}
+                  className="rounded-sm border border-(--color-border) bg-(--color-bg-subtle) px-2.5 py-1.5 text-[13px] font-semibold text-(--color-text-primary)"
                 >
                   {availableYears
                     .filter((year) => rangeEnd === null || year <= rangeEnd)
@@ -280,8 +240,8 @@ export default function StockDetailPage() {
                 </select>
               </label>
 
-              <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>End</span>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-(--color-text-secondary)">End</span>
                 <select
                   value={rangeEnd ?? maxYear}
                   onChange={(e) => {
@@ -291,15 +251,7 @@ export default function StockDetailPage() {
                       return { start: safeStart, end: Math.max(nextEnd, safeStart) };
                     });
                   }}
-                  style={{
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    padding: '7px 10px',
-                    fontSize: '13px',
-                    color: '#0f172a',
-                    background: '#f8fafc',
-                    fontWeight: 600,
-                  }}
+                  className="rounded-sm border border-(--color-border) bg-(--color-bg-subtle) px-2.5 py-1.5 text-[13px] font-semibold text-(--color-text-primary)"
                 >
                   {availableYears
                     .filter((year) => rangeStart === null || year >= rangeStart)
@@ -315,15 +267,15 @@ export default function StockDetailPage() {
         )}
 
         {/* Trade type filter */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280' }}>Filter by type:</span>
-          <button onClick={() => setTradeFilter('all')} style={filterBtn(tradeFilter === 'all', '#0d9488')}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-semibold text-(--color-text-secondary)">Filter by type:</span>
+          <button onClick={() => setTradeFilter('all')} className={filterBtnClass(tradeFilter === 'all')}>
             All
           </button>
-          <button onClick={() => setTradeFilter('buy')} style={filterBtn(tradeFilter === 'buy', '#10b981')}>
+          <button onClick={() => setTradeFilter('buy')} className={filterBtnClass(tradeFilter === 'buy')}>
             Buys Only
           </button>
-          <button onClick={() => setTradeFilter('sell')} style={filterBtn(tradeFilter === 'sell', '#ef4444')}>
+          <button onClick={() => setTradeFilter('sell')} className={filterBtnClass(tradeFilter === 'sell')}>
             Sells Only
           </button>
         </div>
@@ -343,29 +295,28 @@ export default function StockDetailPage() {
             const filteredMemberBioguides = new Set(filteredTrades.map((t) => t.bioguide));
             const filteredMembers = data.members.filter((m) => filteredMemberBioguides.has(m.bioguide));
             return (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="overflow-hidden rounded-md border border-(--color-border) bg-white">
                 {filteredMembers.length === 0 ? (
-                  <p className="text-center text-gray-400 py-8 text-sm">No member data.</p>
+                  <p className="py-8 text-center text-sm text-(--color-text-muted)">No member data.</p>
                 ) : (
-                  <div className="divide-y divide-gray-100" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  <div className="max-h-[400px] divide-y divide-(--color-border) overflow-y-auto">
                     {filteredMembers.map((m) => (
                       <button
                         key={m.bioguide}
                         onClick={() => router.push(`/congressman/${m.bioguide}`)}
-                        className="w-full text-left hover:bg-teal-50 transition-colors cursor-pointer"
-                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', flexWrap: 'wrap' }}
+                        className="flex w-full cursor-pointer flex-wrap items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors duration-150 hover:bg-(--color-bg-subtle)"
                       >
-                        <span style={{ width: '8px', height: '8px', borderRadius: '9999px', background: partyColor(m.party), flexShrink: 0 }} />
-                          <span style={{ fontWeight: 500, fontSize: '14px', color: '#111827', flex: '1 1 100%', minWidth: '0' }} className="sm:flex-1">{m.full_name}</span>
-                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', width: '100%' }} className="sm:w-auto sm:ml-auto">
+                        <Avatar name={m.full_name} party={m.party} size="sm" />
+                        <span className="min-w-0 flex-[1_1_100%] text-sm font-medium text-(--color-text-primary) sm:flex-1">{m.full_name}</span>
+                        <div className="flex w-full flex-shrink-0 flex-wrap items-center gap-2.5 sm:ml-auto sm:w-auto">
                           {m.buyAmount > 0 && (
-                            <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600 }}>↑ {formatMoney(m.buyAmount)}</span>
+                            <span className="text-xs font-semibold text-(--color-positive)">↑ {formatMoney(m.buyAmount)}</span>
                           )}
                           {m.sellAmount > 0 && (
-                            <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>↓ {formatMoney(m.sellAmount)}</span>
+                            <span className="text-xs font-semibold text-(--color-negative)">↓ {formatMoney(m.sellAmount)}</span>
                           )}
-                          <span style={{ fontSize: '12px', color: '#6b7280' }}>{partyLabel(m.party)}</span>
-                          <span style={{ fontSize: '11px', color: '#9ca3af' }}>{m.tradeCount} trade{m.tradeCount !== 1 ? 's' : ''}</span>
+                          <span className="text-xs text-(--color-text-secondary)">{partyInitial(m.party)}</span>
+                          <span className="text-[11px] text-(--color-text-muted)">{m.tradeCount} trade{m.tradeCount !== 1 ? 's' : ''}</span>
                         </div>
                       </button>
                     ))}
@@ -378,60 +329,55 @@ export default function StockDetailPage() {
 
         {/* Trade history */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827' }}>Trade History</h2>
-            <button style={filterBtn(tradeFilter === 'all', '#6b7280')} onClick={() => setTradeFilter('all')}>All</button>
-            <button style={filterBtn(tradeFilter === 'buy', '#15803d')} onClick={() => setTradeFilter('buy')}>Buys</button>
-            <button style={filterBtn(tradeFilter === 'sell', '#b91c1c')} onClick={() => setTradeFilter('sell')}>Sells</button>
-            <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#9ca3af' }}>{filteredTrades.length} trades</span>
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <h2 className="text-base font-bold text-(--color-text-primary)">Trade History</h2>
+            <button className={filterBtnClass(tradeFilter === 'all')} onClick={() => setTradeFilter('all')}>All</button>
+            <button className={filterBtnClass(tradeFilter === 'buy')} onClick={() => setTradeFilter('buy')}>Buys</button>
+            <button className={filterBtnClass(tradeFilter === 'sell')} onClick={() => setTradeFilter('sell')}>Sells</button>
+            <span className="ml-auto text-xs text-(--color-text-muted)">{filteredTrades.length} trades</span>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-hidden rounded-md border border-(--color-border) bg-white">
             {filteredTrades.length === 0 ? (
-              <p className="text-center text-gray-400 py-8 text-sm">No trades.</p>
+              <p className="py-8 text-center text-sm text-(--color-text-muted)">No trades.</p>
             ) : (
-              <>
-                {/* Table header */}
-                <div style={{ overflowX: 'auto' }}>
-                  <div style={{ minWidth: '620px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 90px 90px', gap: '0', padding: '8px 14px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' }}>Date</span>
-                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' }}>Member</span>
-                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', textAlign: 'center' }}>Type</span>
-                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', textAlign: 'right' }}>Amount</span>
-                    </div>
-                    <div className="divide-y divide-gray-100" style={{ maxHeight: '480px', overflowY: 'auto' }}>
-                  {filteredTrades.map((t) => {
-                    const dir = tradeDirection(t.trade_type);
-                    return (
-                      <div
-                        key={t.id}
-                        style={{ display: 'grid', gridTemplateColumns: '100px 1fr 90px 90px', gap: '0', padding: '9px 14px', alignItems: 'center' }}
-                      >
-                        <span style={{ fontSize: '12px', color: '#6b7280', fontFamily: 'monospace' }}>{formatDate(t.trade_date)}</span>
-                        <button
-                          onClick={() => t.bioguide && router.push(`/congressman/${t.bioguide}`)}
-                          style={{ fontSize: '13px', color: dir === 'buy' ? '#10b981' : dir === 'sell' ? '#ef4444' : '#9ca3af', fontWeight: 500, textAlign: 'left', cursor: t.bioguide ? 'pointer' : 'default', background: 'none', border: 'none', padding: 0 }}
-                        >
-                          {t.full_name ?? '—'}
-                        </button>
-                        <span style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          textAlign: 'center',
-                          color: dir === 'buy' ? '#10b981' : dir === 'sell' ? '#ef4444' : '#9ca3af',
-                        }}>
-                          {dir === 'buy' ? '↑ BUY' : dir === 'sell' ? '↓ SELL' : t.trade_type ?? '—'}
-                        </span>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827', textAlign: 'right' }}>
-                          {formatMoney(t.amount)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                    </div>
-                  </div>
-                </div>
-              </>
+              <div className="max-h-[480px] overflow-auto">
+                <table className="w-full min-w-[560px] border-collapse">
+                  <thead className="sticky top-0 bg-(--color-bg-subtle)">
+                    <tr className="border-b border-(--color-border)">
+                      <th className="px-3.5 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-(--color-text-muted)">Date</th>
+                      <th className="px-3.5 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-(--color-text-muted)">Member</th>
+                      <th className="px-3.5 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-(--color-text-muted)">Type</th>
+                      <th className="px-3.5 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-(--color-text-muted)">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-(--color-border)">
+                    {filteredTrades.map((t) => {
+                      const dir = tradeDirection(t.trade_type);
+                      const dirColor = dir === 'buy' ? 'var(--color-positive)' : dir === 'sell' ? 'var(--color-negative)' : 'var(--color-text-muted)';
+                      return (
+                        <tr key={t.id} className="transition-colors duration-150 hover:bg-(--color-bg-subtle)">
+                          <td className="px-3.5 py-2.5 font-mono text-xs text-(--color-text-secondary)">{formatDate(t.trade_date)}</td>
+                          <td className="px-3.5 py-2.5">
+                            <button
+                              onClick={() => t.bioguide && router.push(`/congressman/${t.bioguide}`)}
+                              className="text-left text-[13px] font-medium transition-colors hover:underline"
+                              style={{ color: dirColor, cursor: t.bioguide ? 'pointer' : 'default' }}
+                            >
+                              {t.full_name ?? '—'}
+                            </button>
+                          </td>
+                          <td className="px-3.5 py-2.5 text-center text-[11px] font-bold" style={{ color: dirColor }}>
+                            {dir === 'buy' ? '↑ BUY' : dir === 'sell' ? '↓ SELL' : t.trade_type ?? '—'}
+                          </td>
+                          <td className="px-3.5 py-2.5 text-right text-[13px] font-semibold text-(--color-text-primary)">
+                            {formatMoney(t.amount)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>

@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
 import TradeBarChart from '@/app/components/TradeBarChart';
 import NetWorthSection, { type NetWorthData } from '@/app/components/NetWorthSection';
 import NetWorthLineChart, { type NetWorthHistoryPoint } from '@/app/components/NetWorthLineChart';
@@ -11,6 +9,9 @@ import VotingHistoryTable, { type VoteRecord } from '@/app/components/VotingHist
 import PotentialConflictsTable from '@/app/components/PotentialConflictsTable';
 import type { MemberTrade as ConflictMemberTrade } from '@/app/components/PotentialConflictsTable';
 import type { AnnualDisclosureItem } from '../../components/StockDisclosuresMenu';
+import Avatar from '@/app/components/ui/Avatar';
+import StatCard from '@/app/components/ui/StatCard';
+import { partyLabel, partyTokens } from '@/lib/party';
 
 type MemberTrade = {
   id: number;
@@ -18,6 +19,7 @@ type MemberTrade = {
   type: string;
   amount: number;
   ticker: string;
+  assetName?: string | null;
   date: string;
   sector: string;
 };
@@ -34,43 +36,22 @@ type Member = {
   termEnd: number | null;
 };
 
-function partyInfo(party: string | null): { label: string; color: string } {
-  const p = (party ?? '').trim().toUpperCase();
-  if (p === 'D' || p.startsWith('DEM')) return { label: 'Democrat', color: 'bg-blue-500' };
-  if (p === 'R' || p.startsWith('REP')) return { label: 'Republican', color: 'bg-red-500' };
-  if (p === 'I' || p.startsWith('IND')) return { label: 'Independent', color: 'bg-yellow-400' };
-  return { label: party ?? 'Unknown', color: 'bg-gray-400' };
-}
-
-function bannerStyleForParty(party: string | null): { background: string } {
-  const p = (party ?? '').trim().toUpperCase();
-  if (p === 'D' || p.startsWith('DEM'))
-    return { background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #60a5fa 100%)' };
-  if (p === 'R' || p.startsWith('REP'))
-    return { background: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 45%, #fb7185 100%)' };
-  return { background: 'linear-gradient(135deg, #6d28d9 0%, #7c3aed 45%, #a78bfa 100%)' };
-}
-
-function pillBgForParty(party: string | null): string {
-  const p = (party ?? '').trim().toUpperCase();
-  if (p === 'D' || p.startsWith('DEM')) return 'rgba(30,58,138,0.7)';
-  if (p === 'R' || p.startsWith('REP')) return 'rgba(127,29,29,0.7)';
-  return 'rgba(0,0,0,0.35)';
-}
-
 type TabId = 'trades' | 'networth' | 'voting' | 'conflicts';
 const TAB_LABELS: Record<TabId, string> = { trades: 'Trades', networth: 'Net Worth', voting: 'Voting History', conflicts: 'Potential Conflicts' };
 
 function TabBar({ activeTab, onSelect }: { activeTab: TabId; onSelect: (tab: TabId) => void }) {
   return (
-    <div className="mb-7 flex gap-2 border-b-2 border-gray-200">
+    <div className="mb-7 flex gap-2 border-b border-(--color-border)">
       {(Object.keys(TAB_LABELS) as TabId[]).map((tab) => (
         <button
           key={tab}
           type="button"
           onClick={() => onSelect(tab)}
-          style={{ borderBottom: activeTab === tab ? '3px solid #1d4ed8' : '3px solid transparent', marginBottom: '-2px' }}
-          className={`cursor-pointer border-0 bg-transparent px-5.5 py-2.5 text-sm transition-all ${activeTab === tab ? 'font-bold text-blue-700' : 'font-medium text-gray-500'}`}
+          className={`-mb-px cursor-pointer border-0 border-b-2 bg-transparent px-5.5 py-2.5 text-sm transition-all duration-150 ${
+            activeTab === tab
+              ? 'border-(--color-accent) font-bold text-(--color-accent)'
+              : 'border-transparent font-medium text-(--color-text-secondary) hover:border-(--color-border-strong) hover:text-(--color-text-primary)'
+          }`}
         >
           {TAB_LABELS[tab]}
         </button>
@@ -104,7 +85,6 @@ export default function CongressmanPage() {
   const [loading, setLoading] = useState(true);
   const [netWorth, setNetWorth] = useState<NetWorthData | null>(null);
   const [annualDisclosures, setAnnualDisclosures] = useState<AnnualDisclosureItem[]>([]);
-  const [failedImageBioguide, setFailedImageBioguide] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('trades');
   const [tradeView, setTradeView] = useState<'ticker' | 'year'>('year');
   const [netWorthHistory, setNetWorthHistory] = useState<NetWorthHistoryPoint[]>([]);
@@ -129,8 +109,6 @@ export default function CongressmanPage() {
       .catch(() => {/* aborted or error */});
     return () => controller.abort();
   }, [bioguide]);
-
-  const imgError = failedImageBioguide === bioguide;
 
   const purchaseTrades = useMemo(
     () => trades.filter((t) => getTradeDirection(t.type) === 'purchase'),
@@ -262,39 +240,32 @@ export default function CongressmanPage() {
 
   const tradeCharts = useMemo(
     () => (
-      <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 overflow-hidden">
-        {/* Toggle */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', marginBottom: '16px', marginTop: '8px' }}>
-          {(['year', 'ticker'] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setTradeView(v)}
-              style={{
-                padding: '5px 18px',
-                borderRadius: '9999px',
-                border: '1px solid',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-                borderColor: tradeView === v ? '#1d4ed8' : '#e5e7eb',
-                background: tradeView === v ? '#1d4ed8' : '#f9fafb',
-                color: tradeView === v ? '#fff' : '#6b7280',
-              }}
-            >
-              {v === 'ticker' ? 'By Ticker' : 'By Year'}
-            </button>
-          ))}
+      <div className="overflow-hidden rounded-md border border-(--color-border) bg-white p-6">
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-bold text-(--color-text-primary)">
+            Trades {tradeView === 'ticker' ? 'by Ticker' : '& Net Worth by Year'}
+          </h2>
+          {/* Toggle */}
+          <div className="inline-flex rounded-sm border border-(--color-border)">
+            {(['year', 'ticker'] as const).map((v, i) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setTradeView(v)}
+                className={`cursor-pointer px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 ${i === 0 ? 'rounded-l-[5px]' : 'rounded-r-[5px] border-l border-(--color-border)'} ${
+                  tradeView === v ? 'bg-(--color-accent) text-white' : 'text-(--color-text-secondary) hover:bg-(--color-bg-subtle) hover:text-(--color-text-primary)'
+                }`}
+              >
+                {v === 'ticker' ? 'By Ticker' : 'By Year'}
+              </button>
+            ))}
+          </div>
         </div>
-        <h2 style={{ marginTop: '4px', marginBottom: '14px', textAlign: 'center', fontSize: 'clamp(1.9rem, 8vw, 3rem)', fontWeight: 800, lineHeight: 1.05, color: '#1f2937' }}>
-          Trades {tradeView === 'ticker' ? 'by Ticker' : '& Net Worth by Year'}
-        </h2>
         {tradeView === 'year' ? (
           <TradeBarChart
             trades={purchaseTrades}
             saleTrades={saleTrades}
-            color="#10b981"
+            color="var(--color-positive)"
             emptyMessage="No trades on record"
             groupByYear={true}
           />
@@ -303,7 +274,7 @@ export default function CongressmanPage() {
             <TradeBarChart
               trades={purchaseTrades}
               saleTrades={saleTrades}
-              color="#10b981"
+              color="var(--color-positive)"
               emptyMessage="No trades on record"
               groupByTicker={true}
             />
@@ -316,126 +287,66 @@ export default function CongressmanPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500 text-lg">Loading…</p>
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <p className="text-lg text-(--color-text-muted)">Loading…</p>
       </div>
     );
   }
 
   if (!member) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
-        <p className="text-gray-700 text-lg">Member not found.</p>
-        <button onClick={() => router.back()} className="text-blue-600 hover:underline">← Back</button>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white">
+        <p className="text-lg text-(--color-text-secondary)">Member not found.</p>
+        <button onClick={() => router.back()} className="cursor-pointer text-(--color-accent) transition-colors hover:text-(--color-accent-hover) hover:underline">← Back</button>
       </div>
     );
   }
 
-  const bannerStyle = bannerStyleForParty(member.party);
-
   return (
-    <div
-      className="min-h-screen overflow-x-hidden"
-      style={{ background: 'linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%)' }}
-    >
+    <div className="min-h-screen overflow-x-hidden bg-white">
       {/* Header */}
-      <div className="border-b border-white/10 text-white shadow-xl" style={bannerStyle}>
-        <div
-          className="mx-auto max-w-7xl px-4 md:px-10"
-          style={{ paddingTop: '30px', paddingBottom: '38px' }}
-        >
-          <button onClick={() => router.back()} className="inline-block text-sm text-white/80 transition hover:text-white mb-6 cursor-pointer">
+      <div className="border-b border-(--color-border) px-4 pb-7 pt-6 md:px-10">
+        <div className="mx-auto max-w-7xl">
+          <button onClick={() => router.back()} className="mb-5 inline-block cursor-pointer text-sm text-(--color-text-secondary) transition hover:text-(--color-text-primary)">
             ← Back
           </button>
 
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:gap-8">
-            {/* Photo */}
-            <div className="shrink-0" style={{ marginTop: '8px', marginBottom: '16px', marginRight: '14px' }}>
-              {imgError ? (
-                <div
-                  className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/90 font-bold text-slate-600 shadow-lg"
-                  style={{ width: '156px', height: '206px', fontSize: '44px' }}
-                >
-                  {member.full_name[0]}
-                </div>
-              ) : (
-                <Image
-                  src={photoUrl}
-                  alt={member.full_name}
-                  width={156}
-                  height={206}
-                  className="rounded-2xl border border-white/60 bg-white/90 object-cover object-center shadow-lg"
-                  onError={() => setFailedImageBioguide(bioguide)}
-                />
-              )}
-            </div>
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:gap-6">
+            <Avatar name={member.full_name} party={member.party} photoUrl={photoUrl} size="lg" />
 
             {/* Info */}
-            <div className="min-w-0 py-2">
-              <h1 className="text-3xl font-bold tracking-tight md:text-5xl">{member.full_name}</h1>
-            {/* Party / chamber / term pills */}
-              {(() => {
-                const pillBg = pillBgForParty(member.party);
-                const pillStyle = {
-                  background: pillBg,
-                  color: '#fff',
-                  padding: '6px 16px',
-                  borderRadius: '9999px',
-                  fontSize: '13px',
-                  fontWeight: 600 as const,
-                };
-                return (
-                  <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-6">
-                    {member.party && (
-                      <span style={pillStyle}>{partyInfo(member.party).label}</span>
-                    )}
-                    {member.chamber && (
-                      <span style={{ ...pillStyle, textTransform: 'capitalize' }}>{member.chamber}</span>
-                    )}
-                    {member.district && (
-                      <span style={pillStyle}>{member.district}</span>
-                    )}
-                    <span style={{ ...pillStyle, fontSize: '12px', fontFamily: 'monospace', color: 'rgba(255,255,255,0.8)' }}>{bioguide}</span>
-                    {member.termStart != null && (
-                      <span style={pillStyle}>
-                        {member.termStart}–{member.is_active ? 'Present' : (member.termEnd ?? '?')}
-                      </span>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* Stats pills */}
-              <div className="mt-10 flex flex-wrap gap-x-3 gap-y-6">
-                {[
-                  { label: 'Total Trades', value: trades.length },
-                  { label: 'Purchases', value: purchaseTrades.length },
-                  { label: 'Sales', value: saleTrades.length },
-                  { label: 'Total Purchased', value: formatMoney(totalPurchases) },
-                  { label: 'Total Sold', value: formatMoney(totalSales) },
-                  { label: 'Most Traded', value: topTicker },
-                ].map(({ label, value }) => (
-                  <div
-                    key={label}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      padding: '6px 14px',
-                      borderRadius: '9999px',
-                      background: 'rgba(255,255,255,0.15)',
-                      backdropFilter: 'blur(4px)',
-                      border: '1px solid rgba(255,255,255,0.25)',
-                    }}
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold tracking-tight text-(--color-text-primary) md:text-3xl">{member.full_name}</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-(--color-text-secondary)">
+                {member.party && (
+                  <span className="font-semibold" style={{ color: `var(${partyTokens(member.party).text})` }}>
+                    {partyLabel(member.party)}
+                  </span>
+                )}
+                {member.chamber && (
+                  <span
+                    className={`capitalize font-semibold ${
+                      member.chamber.toLowerCase() === 'senate' ? 'text-(--color-negative)' : 'text-(--color-accent)'
+                    }`}
                   >
-                    <span style={{ fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.7)', lineHeight: 1.2 }}>
-                      {label}
-                    </span>
-                    <span style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff', lineHeight: 1.3, marginTop: '2px' }}>
-                      {value}
-                    </span>
-                  </div>
-                ))}
+                    {member.chamber}
+                  </span>
+                )}
+                {member.district && <span>{member.district}</span>}
+                <span className="font-mono text-xs text-(--color-text-muted)">{bioguide}</span>
+                {member.termStart != null && (
+                  <span>{member.termStart}–{member.is_active ? 'Present' : (member.termEnd ?? '?')}</span>
+                )}
+              </div>
+
+              {/* Stats */}
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                <StatCard label="Total Trades" value={trades.length} />
+                <StatCard label="Purchases" value={purchaseTrades.length} valueColor="var(--color-positive)" />
+                <StatCard label="Sales" value={saleTrades.length} valueColor="var(--color-negative)" />
+                <StatCard label="Total Purchased" value={formatMoney(totalPurchases)} valueColor="var(--color-positive)" />
+                <StatCard label="Total Sold" value={formatMoney(totalSales)} valueColor="var(--color-negative)" />
+                <StatCard label="Most Traded" value={topTicker} />
               </div>
             </div>
           </div>
@@ -443,7 +354,7 @@ export default function CongressmanPage() {
       </div>
 
       {/* Graphs */}
-      <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 md:px-10 md:pb-14 md:pt-8" style={{ marginTop: '24px' }}>
+      <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 md:px-10 md:pb-14 md:pt-8">
 
         <TabBar activeTab={activeTab} onSelect={setActiveTab} />
 
@@ -452,18 +363,8 @@ export default function CongressmanPage() {
           tradeCharts
         ) : activeTab === 'networth' ? (
           <div className="space-y-8">
-            <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 overflow-hidden">
-              <h2
-                style={{
-                  marginTop: '4px',
-                  marginBottom: '14px',
-                  textAlign: 'center',
-                  fontSize: 'clamp(1.9rem, 8vw, 3rem)',
-                  fontWeight: 800,
-                  lineHeight: 1.05,
-                  color: '#1f2937',
-                }}
-              >
+            <div className="overflow-hidden rounded-md border border-(--color-border) bg-white p-6">
+              <h2 className="mb-3.5 text-lg font-bold text-(--color-text-primary)">
                 Estimated Net Worth
               </h2>
               <NetWorthLineChart

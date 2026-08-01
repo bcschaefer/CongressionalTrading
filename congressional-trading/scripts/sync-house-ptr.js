@@ -251,6 +251,22 @@ function parseAmountFromTail(tail) {
   return (lo + hi) / 2;
 }
 
+// Many disclosed assets (private funds, LLCs, municipal bonds, Treasury notes) have no
+// ticker at all — this is the raw descriptive text for those, kept for display purposes
+// when there's no symbol to show instead.
+function cleanAssetName(raw) {
+  // Some PDFs render abbreviated form labels ("Filer Status:", "Sub Owner:") with the
+  // non-first letters of each word replaced by stray control characters (e.g. null
+  // bytes) instead of spaces — strip those before collapsing whitespace.
+  let name = String(raw ?? '').replace(/[\x00-\x1f]/g, ' ').replace(/\s+/g, ' ').trim();
+  // Trailing asset-type bracket, e.g. "... [GS]" or "... [OT]".
+  name = name.replace(/\s*\[[A-Za-z]{1,5}\]\s*$/, '').trim();
+  // Leading owner-code stuck directly to the name with no space (Spouse/Joint/Dependent
+  // Child codes from the disclosure form — "SPMulti-Pack Solutions LLC" → "Multi-Pack...").
+  name = name.replace(/^(SP|JT|DC)(?=[A-Z])/, '').trim();
+  return name || null;
+}
+
 function extractTradesFromPdfText(docId, text) {
   const rows = [];
 
@@ -272,21 +288,33 @@ function extractTradesFromPdfText(docId, text) {
   }
 
   let pendingTicker = null;
+  // Asset descriptions for non-ticker holdings (bonds, private funds) sometimes wrap
+  // across several lines before the trade-type/dates/amount line — accumulate them here.
+  let pendingAssetNameLines = [];
 
   for (const cleanLine of lines) {
     // Combined format (newer PDFs): ticker and trade columns concatenated on one line
     // e.g. "Amazon.com, Inc. (AMZN) [ST]P01/02/201901/02/2019$1,001 - $15,000"
     // Type is P (purchase), S (sale), or E (exchange, e.g. a spin-off).
+    // Ticker/asset-type letters are matched case-insensitively: some PDFs' embedded fonts
+    // have a broken glyph-to-Unicode mapping that extracts scattered letters (often the
+    // first letter of a word, e.g. S, G, U) as lowercase — "(AMZN)" becomes "(aMZN)" — even
+    // though the rest of the run's characters extract correctly.
     const combinedMatch = cleanLine.match(
-      /\(([A-Z][A-Z0-9.]{0,9})\)\s*(?:\[[A-Z]{1,5}\]\s*)?([PSE])(?:\s*\([^)]+\))?\s*(\d{2}\/\d{2}\/\d{4})\s*(\d{2}\/\d{2}\/\d{4})\s*(.*)$/
+      /^(.*?)\(([A-Za-z][A-Za-z0-9.]{0,9})\)\s*(?:\[[A-Za-z]{1,5}\]\s*)?([PSE])(?:\s*\([^)]+\))?\s*(\d{2}\/\d{2}\/\d{4})\s*(\d{2}\/\d{2}\/\d{4})\s*(.*)$/
     );
     if (combinedMatch) {
-      const tradeDate = resolveTransactionDate(combinedMatch[3], combinedMatch[4]);
-      const amount = parseAmountFromTail(combinedMatch[5]);
+      const tradeDate = resolveTransactionDate(combinedMatch[4], combinedMatch[5]);
+      const amount = parseAmountFromTail(combinedMatch[6]);
+      // Require at least one genuine uppercase letter so a fully-lowercase parenthetical
+      // (an annotation word, not a corrupted ticker) doesn't get mistaken for one — but
+      // still record the trade itself (ticker unknown) rather than dropping it entirely.
+      const ticker = /[A-Z]/.test(combinedMatch[2]) ? combinedMatch[2].toUpperCase() : null;
       if (tradeDate && amount && amount > 0) {
-        rows.push({ docId, ticker: combinedMatch[1], tradeType: combinedMatch[2], tradeDate, amount });
+        rows.push({ docId, ticker, assetName: ticker ? null : cleanAssetName(combinedMatch[1]), tradeType: combinedMatch[3], tradeDate, amount });
       }
       pendingTicker = null;
+      pendingAssetNameLines = [];
       continue;
     }
 
@@ -299,17 +327,44 @@ function extractTradesFromPdfText(docId, text) {
       const tradeDate = resolveTransactionDate(cryptoMatch[3], cryptoMatch[4]);
       const amount = parseAmountFromTail(cryptoMatch[5]);
       if (tradeDate && amount && amount > 0) {
-        rows.push({ docId, ticker: cryptoMatch[1].toUpperCase(), tradeType: cryptoMatch[2], tradeDate, amount });
+        rows.push({ docId, ticker: cryptoMatch[1].toUpperCase(), assetName: null, tradeType: cryptoMatch[2], tradeDate, amount });
       }
       pendingTicker = null;
+      pendingAssetNameLines = [];
+      continue;
+    }
+
+    // Named asset with NO ticker, all on one line, e.g.
+    // "Mercato Partners IV, LP [HN]P02/15/202303/30/2023$1,001 - $15,000"
+    const namedNoTickerMatch = cleanLine.match(
+      /^(.+?)\s*\[[A-Za-z]{1,5}\]\s*([PSE])(?:\s*\([^)]+\))?\s*(\d{2}\/\d{2}\/\d{4})\s*(\d{2}\/\d{2}\/\d{4})\s*(.*)$/
+    );
+    if (namedNoTickerMatch) {
+      const tradeDate = resolveTransactionDate(namedNoTickerMatch[3], namedNoTickerMatch[4]);
+      const amount = parseAmountFromTail(namedNoTickerMatch[5]);
+      if (tradeDate && amount && amount > 0) {
+        rows.push({
+          docId,
+          ticker: null,
+          assetName: cleanAssetName(namedNoTickerMatch[1]),
+          tradeType: namedNoTickerMatch[2],
+          tradeDate,
+          amount,
+        });
+      }
+      pendingTicker = null;
+      pendingAssetNameLines = [];
       continue;
     }
 
     // Try to detect ticker from lines like "(GSK)" or "(GSK) [ST]"
-    const tickerMatch = cleanLine.match(/\(([A-Z][A-Z0-9.]{0,9})\)/);
-    // Don't treat "(partial)" or date-containing lines as tickers
-    if (tickerMatch && !/\b[PSE]\b/.test(cleanLine) && !/\d{2}\/\d{2}\/\d{4}/.test(cleanLine)) {
-      pendingTicker = tickerMatch[1];
+    const tickerMatch = cleanLine.match(/\(([A-Za-z][A-Za-z0-9.]{0,9})\)/);
+    // Don't treat "(partial)" or date-containing lines as tickers, and require at least
+    // one genuine uppercase letter (see combinedMatch comment above) so an annotation
+    // word like "(New)" isn't mistaken for a ticker.
+    if (tickerMatch && /[A-Z]/.test(tickerMatch[1]) && !/\b[PSE]\b/.test(cleanLine) && !/\d{2}\/\d{2}\/\d{4}/.test(cleanLine)) {
+      pendingTicker = tickerMatch[1].toUpperCase();
+      pendingAssetNameLines = [];
       continue;
     }
 
@@ -329,6 +384,7 @@ function extractTradesFromPdfText(docId, text) {
         rows.push({
           docId,
           ticker: pendingTicker,
+          assetName: pendingTicker ? null : cleanAssetName(pendingAssetNameLines.join(' ')),
           tradeType,
           tradeDate,
           amount,
@@ -336,13 +392,43 @@ function extractTradesFromPdfText(docId, text) {
       }
 
       pendingTicker = null;
+      pendingAssetNameLines = [];
       continue;
     }
 
-    // Clear pending ticker only on clear section-break lines
+    // Clear pending ticker/asset-name only on clear section-break or known metadata-trailer
+    // lines (filing status, sub-holding chain, spin-off descriptions, etc.) — anything else
+    // is treated as part of a multi-line asset description (e.g. wrapped bond names).
     const looksLikeSectionBreak = /^(F I|I P O|C  S|Name:|Status:|State|Clerk|--|\*\s)/i.test(cleanLine);
-    if (looksLikeSectionBreak) {
+    // Some PDFs render abbreviated form labels ("Filer Status:", "Sub Owner:") as a lone
+    // letter, filler (spaces or stray control characters), another lone letter, filler,
+    // then a colon — e.g. "F\x00\x00\x00\x00\x00 S\x00\x00\x00\x00\x00: New". Match that
+    // shape generically rather than the exact filler characters of any one PDF variant.
+    const looksLikeAbbreviatedLabel = /^[A-Za-z][^A-Za-z0-9]{1,20}[A-Za-z][^A-Za-z0-9]{0,20}:\s*\S/.test(cleanLine);
+    // Single-letter labels ("L : US", "D : Dividend reinvestment...") show up the same way
+    // for Location/Description fields on some filings.
+    const looksLikeSingleLetterLabel = /^[A-Za-z]\s*:\s*\S/.test(cleanLine);
+    // A free-text continuation of a Description field, e.g. "– Business Development
+    // Company." following a "D : ..." line.
+    const looksLikeDashContinuation = /^[-–]\s*\S/.test(cleanLine);
+    const looksLikeMetadataTrailer =
+      /^(FILING STATUS|SUb?\s*HOLDING|DESCRIPTION|Filing ID|gfedc)/i.test(cleanLine) ||
+      looksLikeAbbreviatedLabel ||
+      looksLikeSingleLetterLabel ||
+      looksLikeDashContinuation;
+    // The table header ("ID Owner Asset Transaction Type Date Notification Date Amount
+    // Cap. Gains > $200?") gets mangled by extraction into several short fragment lines
+    // before the first real asset entry — treat its last fragment as a reset point so
+    // none of it leaks into an asset name.
+    const looksLikeTableHeaderFragment = /^(tranSaction|.*owner.*asset.*transaction|^type$|Date\s*notification|^Date$|amount\s*cap|gains\s*>|\$?200\?)/i.test(cleanLine);
+    if (looksLikeSectionBreak || looksLikeTableHeaderFragment) {
       pendingTicker = null;
+      pendingAssetNameLines = [];
+    } else if (looksLikeMetadataTrailer) {
+      // Skip without resetting — a metadata trailer can appear between an asset's
+      // description lines and its trade line in some layouts.
+    } else if (cleanLine) {
+      pendingAssetNameLines.push(cleanLine);
     }
   }
 
@@ -350,7 +436,9 @@ function extractTradesFromPdfText(docId, text) {
 }
 
 async function fetchAndParsePtrPdf(year, docId) {
-  const pdfRes = await fetch(PTR_PDF_URL(year, docId));
+  // A plain fetch() has no default timeout and can hang indefinitely on a stalled
+  // connection — bound it so one bad request can't stall the whole sync run.
+  const pdfRes = await fetch(PTR_PDF_URL(year, docId), { signal: AbortSignal.timeout(20_000) });
   if (!pdfRes.ok) {
     throw new Error(`PDF request failed: ${pdfRes.status}`);
   }
@@ -513,6 +601,7 @@ async function run() {
 
         const tradesPayload = parsedTrades.map((trade) => ({
           ticker: trade.ticker,
+          asset_name: trade.assetName ?? null,
           trade_date: trade.tradeDate,
           trade_type: trade.tradeType,
           amount: trade.amount,
@@ -596,7 +685,13 @@ async function run() {
   }
 }
 
-run().catch((error) => {
-  console.error('PTR sync failed:', error);
-  process.exit(1);
-});
+module.exports = { extractTradesFromPdfText, cleanAssetName, resolveTransactionDate };
+
+// Guard so this file can be safely require()'d (e.g. from tests or a reparse script)
+// without triggering a live sync run against production.
+if (require.main === module) {
+  run().catch((error) => {
+    console.error('PTR sync failed:', error);
+    process.exit(1);
+  });
+}
