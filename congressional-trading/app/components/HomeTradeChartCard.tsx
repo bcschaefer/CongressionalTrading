@@ -15,20 +15,27 @@ export default function HomeTradeChartCard({
   saleTrades,
 }: HomeTradeChartCardProps) {
   const isEmpty = purchaseTrades.length === 0 && saleTrades.length === 0;
+  // Fixed to match NetWorthLineChart's default height (260px) so the two stacked
+  // charts on the homepage never resize the page as their data loads in.
+  const CHART_HEIGHT = 260;
   return (
     <div className="overflow-hidden rounded-md border border-(--color-border) bg-white p-4">
       {isLoading || isEmpty ? (
-        <div className="flex min-h-80 items-center justify-center rounded-sm border border-dashed border-(--color-border) bg-(--color-bg-subtle) text-sm font-semibold text-(--color-text-secondary)">
+        <div
+          style={{ height: CHART_HEIGHT }}
+          className="flex items-center justify-center rounded-sm border border-dashed border-(--color-border) bg-(--color-bg-subtle) text-sm font-semibold text-(--color-text-secondary)"
+        >
           {isLoading ? 'Loading chart data...' : 'Hover a trader to see their trades'}
         </div>
       ) : (
-        <div style={{ width: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
+        <div style={{ width: '100%', height: CHART_HEIGHT, overflowX: 'auto', overflowY: 'hidden' }}>
           <TradeBarChart
             trades={purchaseTrades}
             saleTrades={saleTrades}
             color="var(--color-positive)"
             emptyMessage={emptyMessage}
             groupByYear={true}
+            height={CHART_HEIGHT}
           />
         </div>
       )}

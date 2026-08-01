@@ -21,11 +21,16 @@ export default function NetWorthLineChart({
   isLoading,
   onYearClick,
   emptyMessage,
+  height = 260,
 }: {
   data: NetWorthHistoryPoint[];
   isLoading: boolean;
   onYearClick?: (year: number) => void;
   emptyMessage?: string;
+  /** Fixed pixel height of the chart's bounding box — kept constant across every
+   * render state (loading/empty/single-point/multi-point) so the surrounding layout
+   * never shifts as data streams in. */
+  height?: number;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
 
@@ -42,7 +47,7 @@ export default function NetWorthLineChart({
     const iw = W - margin.left - margin.right;
     const ih = H - margin.top - margin.bottom;
 
-    svg.attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'xMidYMid meet').style('width', '100%').style('height', 'auto');
+    svg.attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'xMidYMid meet').style('width', '100%').style('height', '100%');
 
     const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
@@ -156,7 +161,7 @@ export default function NetWorthLineChart({
 
   if (isLoading) {
     return (
-      <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ width: '32px', height: '32px', border: '3px solid var(--color-border)', borderTopColor: 'var(--color-accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
           <p style={{ marginTop: '12px', fontSize: '13px', color: 'var(--color-text-muted)' }}>Loading historical data…</p>
@@ -167,7 +172,7 @@ export default function NetWorthLineChart({
 
   if (data.length === 0) {
     return (
-      <div style={{ height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>{emptyMessage ?? 'No historical net worth data available.'}</p>
       </div>
     );
@@ -176,7 +181,7 @@ export default function NetWorthLineChart({
   if (data.length === 1) {
     const [d] = data;
     return (
-      <div style={{ textAlign: 'center', padding: '24px 0' }}>
+      <div style={{ height, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
         <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '6px' }}>{d.year}</p>
         <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-accent)' }}>
           {formatMoney(d.netWorth)}
@@ -194,8 +199,8 @@ export default function NetWorthLineChart({
   }
 
   return (
-    <div style={{ width: '100%', overflow: 'hidden' }}>
-      <svg ref={svgRef} />
+    <div style={{ width: '100%', height, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
+      <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
     </div>
   );
 }

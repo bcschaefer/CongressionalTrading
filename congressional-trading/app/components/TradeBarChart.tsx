@@ -26,6 +26,9 @@ type TradeBarChartProps = {
   emptyMessage: string;
   groupByTicker?: boolean;
   groupByYear?: boolean;
+  /** Fixed pixel height of the chart, held constant regardless of data — keeps the
+   * surrounding layout from resizing as trades load in. */
+  height?: number;
 };
 
 function formatTick(value: number) {
@@ -41,6 +44,7 @@ export default function TradeBarChart({
   emptyMessage,
   groupByTicker = false,
   groupByYear = false,
+  height = 380,
 }: TradeBarChartProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -105,7 +109,6 @@ export default function TradeBarChart({
       const width = groupedData.yearMode
         ? Math.max(320, containerWidth)
         : Math.max(680, allTickers.length * 80);
-      const height = 380;
       const margin = { top: 30, right: 20, bottom: 80, left: 64 };
       const innerWidth = width - margin.left - margin.right;
       const innerHeight = height - margin.top - margin.bottom;
@@ -198,7 +201,6 @@ export default function TradeBarChart({
 
     // ── SINGLE-SERIES MODE ────────────────────────────────────────────────────
     const width = Math.max(680, series.length * 52);
-    const height = 380;
     const margin = { top: 20, right: 20, bottom: 80, left: 64 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
@@ -296,7 +298,7 @@ export default function TradeBarChart({
       .attr('font-size', '10px')
       .attr('font-weight', 'bold')
       .text((d) => formatTick(d.amount));
-  }, [color, emptyMessage, router, series, groupedData]);
+  }, [color, emptyMessage, router, series, groupedData, height]);
 
   const isYearMode = groupedData?.yearMode ?? false;
   return (
