@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
 export type NetWorthHistoryPoint = {
@@ -33,21 +33,25 @@ export default function NetWorthLineChart({
   height?: number;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
     if (data.length === 0) return;
 
-    const W = 900;
-    const H = 300;
+    // Draw at the container's actual pixel box instead of a fixed-aspect viewBox —
+    // that way the chart always fills its box edge to edge instead of being
+    // letterboxed down to whatever rectangle happens to share its aspect ratio.
+    const W = containerRef.current?.offsetWidth || 900;
+    const H = height;
     const margin = { top: 24, right: 40, bottom: 48, left: 80 };
     const iw = W - margin.left - margin.right;
     const ih = H - margin.top - margin.bottom;
 
-    svg.attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'xMidYMid meet').style('width', '100%').style('height', '100%');
+    svg.attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'none').style('width', '100%').style('height', '100%');
 
     const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
@@ -157,7 +161,7 @@ export default function NetWorthLineChart({
       });
 
     return () => { tooltip.remove(); };
-  }, [data, onYearClick]);
+  }, [data, onYearClick, height]);
 
   if (isLoading) {
     return (
@@ -199,8 +203,8 @@ export default function NetWorthLineChart({
   }
 
   return (
-    <div style={{ width: '100%', height, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
-      <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
+    <div ref={containerRef} style={{ width: '100%', height, overflow: 'hidden' }}>
+      <svg ref={svgRef} style={{ width: '100%', height: '100%', display: 'block' }} />
     </div>
   );
 }
