@@ -6,6 +6,9 @@ type HomeTradeChartCardProps = {
   emptyMessage: string;
   purchaseTrades: HomeTrade[];
   saleTrades: HomeTrade[];
+  /** Fixed pixel height, held constant across loading/empty/loaded states so the
+   * homepage layout never resizes as data streams in. */
+  height?: number;
 };
 
 export default function HomeTradeChartCard({
@@ -13,11 +16,9 @@ export default function HomeTradeChartCard({
   emptyMessage,
   purchaseTrades,
   saleTrades,
+  height: CHART_HEIGHT = 260,
 }: HomeTradeChartCardProps) {
   const isEmpty = purchaseTrades.length === 0 && saleTrades.length === 0;
-  // Fixed to match NetWorthLineChart's default height (260px) so the two stacked
-  // charts on the homepage never resize the page as their data loads in.
-  const CHART_HEIGHT = 260;
   return (
     <div className="overflow-hidden rounded-md border border-(--color-border) bg-white p-4">
       {isLoading || isEmpty ? (
