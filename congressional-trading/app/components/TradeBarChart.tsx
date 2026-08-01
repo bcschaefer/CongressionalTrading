@@ -109,7 +109,9 @@ export default function TradeBarChart({
       const width = groupedData.yearMode
         ? Math.max(320, containerWidth)
         : Math.max(680, allTickers.length * 80);
-      const margin = { top: 30, right: 20, bottom: 80, left: 64 };
+      // Year labels are short ("2024") and don't need the rotated-label clearance
+      // that long ticker symbols do, so give them a much tighter bottom margin.
+      const margin = { top: 30, right: 20, bottom: groupedData.yearMode ? 36 : 80, left: 64 };
       const innerWidth = width - margin.left - margin.right;
       const innerHeight = height - margin.top - margin.bottom;
 
@@ -147,15 +149,19 @@ export default function TradeBarChart({
         .attr('y1', (d) => y(d)).attr('y2', (d) => y(d))
         .attr('stroke', 'var(--color-border)').attr('stroke-width', 1);
 
-      // X axis (ticker labels centered under each group)
-      g.append('g')
+      // X axis (ticker/year labels centered under each group)
+      const xAxisText = g
+        .append('g')
         .attr('transform', `translate(0,${innerHeight})`)
         .call(d3.axisBottom(x0))
         .selectAll('text')
-        .attr('transform', 'rotate(-35)')
-        .style('text-anchor', 'end')
         .style('fill', 'var(--color-text-primary)')
         .style('font-weight', '600');
+      if (groupedData.yearMode) {
+        xAxisText.style('text-anchor', 'middle');
+      } else {
+        xAxisText.attr('transform', 'rotate(-35)').style('text-anchor', 'end');
+      }
 
       // Purchase bars (green)
       const purchaseTickers = allTickers.filter((t) => purchaseByTicker.has(t));

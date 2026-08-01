@@ -199,7 +199,7 @@ export default function Hero() {
                       ? 'No electronic disclosures available for this member.'
                       : 'Hover a trader to see their net worth'
                   }
-                  height={180}
+                  height={140}
                 />
                 {detailYear !== null && (
                   <NetWorthDetailPanel year={detailYear} data={detailData} loading={detailLoading} />
@@ -212,7 +212,7 @@ export default function Hero() {
               emptyMessage="No trades in current data"
               purchaseTrades={purchaseTrades}
               saleTrades={saleTrades}
-              height={340}
+              height={420}
             />
           </div>
 
