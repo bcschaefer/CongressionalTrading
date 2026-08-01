@@ -252,15 +252,7 @@ export default function RepresentativesPage() {
                             <span className={`font-semibold ${m.is_active ? 'text-foreground' : 'text-(--color-text-muted)'}`}>{m.full_name}</span>
                           </div>
                         </td>
-                        <td
-                          className={`whitespace-nowrap px-3.5 py-2.5 text-center text-[13px] font-semibold ${
-                            (m.chamber ?? '').toLowerCase() === 'senate'
-                              ? 'text-(--color-negative)'
-                              : (m.chamber ?? '').toLowerCase() === 'house'
-                                ? 'text-(--color-accent)'
-                                : 'text-(--color-text-muted)'
-                          }`}
-                        >
+                        <td className="whitespace-nowrap px-3.5 py-2.5 text-center text-[13px] text-(--color-text-secondary)">
                           {m.chamber ? chamberLabel(m.chamber) : '—'}
                         </td>
                         <td className="whitespace-nowrap px-3.5 py-2.5 text-center text-[13px] font-semibold" style={{ color: `var(${partyTextVar})` }}>

@@ -24,7 +24,7 @@ const SIZE_CLASSES: Record<NonNullable<AvatarProps['size']>, string> = {
   sm: 'h-7 w-7 text-[11px] rounded-full',
   md: 'h-10 w-10 text-sm rounded-full',
   lg: 'h-18 w-18 text-xl rounded-full',
-  portrait: 'h-36 w-28 text-3xl rounded-lg',
+  portrait: 'h-52 w-40 text-4xl rounded-lg',
 };
 
 export default function Avatar({ name, party, photoUrl, size = 'sm', ringVar }: AvatarProps) {

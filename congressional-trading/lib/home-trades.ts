@@ -3,6 +3,7 @@ export type HomeTrade = {
   bioguide: string;
   congressman: string;
   chamber: string | null;
+  party: string | null;
   type: string;
   amount: number;
   ticker: string;
@@ -15,6 +16,7 @@ export type CongressmanGroup = {
   bioguide: string;
   congressman: string;
   chamber: string | null;
+  party: string | null;
   trades: HomeTrade[];
   latestDate: string;
   totalAmount: number;
@@ -105,6 +107,7 @@ export function groupTradesByCongressman(trades: HomeTrade[]): CongressmanGroup[
         bioguide,
         congressman: memberTrades[0].congressman,
         chamber: memberTrades[0].chamber ?? null,
+        party: memberTrades[0].party ?? null,
         trades: sortedTrades,
         latestDate: sortedTrades[0]?.date ?? '',
         totalAmount: sortedTrades.reduce((sum, trade) => sum + trade.amount, 0),

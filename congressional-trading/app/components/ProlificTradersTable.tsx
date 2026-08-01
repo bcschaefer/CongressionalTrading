@@ -1,12 +1,12 @@
 import type { CongressmanGroup } from '@/lib/home-trades';
 import { formatDate, formatMoney, getPublishDelayLabel, getTradeCountLabel } from '@/lib/home-trades';
-import Avatar from '@/app/components/ui/Avatar';
+import { partyTokens } from '@/lib/party';
 
 // Table recipe used across the app's dense tables: real <table> markup, a container
 // with `rounded-md border border-(--color-border)` (no shadow), header row
 // `bg-(--color-bg-subtle)` with muted uppercase text (left-aligned for text columns,
 // right-aligned for numeric — never centered), body `divide-y divide-(--color-border)`
-// only (no zebra striping), identity columns lead with an Avatar + name.
+// only (no zebra striping).
 
 type ProlificTradersTableProps = {
   groups: CongressmanGroup[];
@@ -16,6 +16,10 @@ type ProlificTradersTableProps = {
   onPrefetchMember: (bioguide: string) => void;
   onOpenMember: (bioguide: string) => void;
 };
+
+function chamberLabel(chamber: string | null): string {
+  return (chamber ?? '').toLowerCase() === 'senate' ? 'Senate' : 'House';
+}
 
 export default function ProlificTradersTable({
   groups,
@@ -64,17 +68,12 @@ export default function ProlificTradersTable({
           >
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-(--color-text-muted)">#{index + 1}</span>
-              <Avatar name={group.congressman} size="sm" />
-              <span className="text-sm font-semibold text-foreground">{group.congressman}</span>
-              {group.chamber && (
-                <span
-                  className={`text-[11px] font-semibold ${group.chamber.toLowerCase() === 'senate' ? 'text-(--color-negative)' : 'text-(--color-accent)'}`}
-                >
-                  {group.chamber.toLowerCase() === 'senate' ? 'Senate' : 'House'}
-                </span>
-              )}
+              <span className="text-sm font-semibold" style={{ color: `var(${partyTokens(group.party).text})` }}>
+                {group.congressman}
+              </span>
             </div>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-(--color-text-secondary)">
+              <span>{chamberLabel(group.chamber)}</span>
               <span>Traded {formatDate(group.trades[0]?.date ?? group.latestDate)}</span>
               <span>
                 Published{' '}
@@ -102,10 +101,11 @@ export default function ProlificTradersTable({
           <thead className="sticky top-0 bg-(--color-bg-subtle)">
             <tr className="border-b border-(--color-border)">
               <th className="w-[5%] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">#</th>
-              <th className="w-[32%] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Congressman</th>
-              <th className="w-[14%] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Date Traded</th>
-              <th className="w-[17%] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Date Published</th>
-              <th className="w-[12%] px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Trades</th>
+              <th className="w-[22%] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Congressman</th>
+              <th className="w-[13%] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Chamber</th>
+              <th className="w-[13%] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Date Traded</th>
+              <th className="w-[16%] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Date Published</th>
+              <th className="w-[11%] px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Trades</th>
               <th className="w-[20%] px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Total Amount</th>
             </tr>
           </thead>
@@ -134,18 +134,11 @@ export default function ProlificTradersTable({
               >
                 <td className="px-3 py-3 text-sm text-(--color-text-muted)">#{index + 1}</td>
                 <td className="px-3 py-3 text-sm font-medium">
-                  <div className="flex items-center gap-2">
-                    <Avatar name={group.congressman} size="sm" />
-                    <span className="font-semibold text-foreground">{group.congressman}</span>
-                    {group.chamber && (
-                      <span
-                        className={`shrink-0 text-[11px] font-semibold ${group.chamber.toLowerCase() === 'senate' ? 'text-(--color-negative)' : 'text-(--color-accent)'}`}
-                      >
-                        {group.chamber.toLowerCase() === 'senate' ? 'Senate' : 'House'}
-                      </span>
-                    )}
-                  </div>
+                  <span className="font-semibold" style={{ color: `var(${partyTokens(group.party).text})` }}>
+                    {group.congressman}
+                  </span>
                 </td>
+                <td className="px-3 py-3 text-sm text-(--color-text-secondary)">{chamberLabel(group.chamber)}</td>
                 <td className="px-3 py-3 text-sm text-(--color-text-secondary)">
                   {formatDate(group.trades[0]?.date ?? group.latestDate)}
                 </td>

@@ -316,7 +316,9 @@ export default function CongressmanPage() {
           </button>
 
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:gap-6">
-            <Avatar name={member.full_name} party={member.party} photoUrl={photoUrl} size="portrait" ringVar="--color-bg" />
+            <div className="-ml-4 shrink-0 md:-ml-10">
+              <Avatar name={member.full_name} party={member.party} photoUrl={photoUrl} size="portrait" ringVar="--color-bg" />
+            </div>
 
             {/* Info */}
             <div className="min-w-0">
