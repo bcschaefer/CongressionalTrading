@@ -152,7 +152,7 @@ export default function RepresentativesPage() {
           </Link>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Members of Congress</h1>
           <p className="mt-2 max-w-xl text-sm text-(--color-text-secondary)">
-            Every member of Congress must disclose their stock trades. We make it easy to see who&rsquo;s betting big.
+            Every current and former member of Congress, sorted by trading activity and net worth.
           </p>
           <p className="mt-1 text-xs text-(--color-text-muted)">
             {loading ? '…' : `${activeCount} currently active · ${members.length} total`}

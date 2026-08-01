@@ -32,7 +32,7 @@ function HeroBanner() {
           Your lawmakers are <span className="text-(--color-accent)">trading</span> <span className="text-(--color-negative)">stocks</span>.
         </h1>
         <p className="mt-3 max-w-xl text-base text-(--color-text-secondary)">
-          We track every disclosed congressional trade, so you can see exactly what influences their laws.
+          Members of Congress have to disclose their stock trades by law. We pull every filing and put it in one place.
         </p>
         <div className="mt-5 flex flex-wrap gap-2.5">
           <Link

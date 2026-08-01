@@ -69,9 +69,9 @@ export default function StocksPage() {
           <Link href="/" className="mb-4 inline-block text-sm text-(--color-text-secondary) transition hover:text-foreground">
             ← Back to home
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">The Congressional Watchlist</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Stocks Congress Trades</h1>
           <p className="mt-2 max-w-xl text-sm text-(--color-text-secondary)">
-            These are the stocks Congress is buying and selling. Coincidence or conviction? You decide.
+            Every ticker bought or sold by a member of Congress, based on their disclosures.
           </p>
           <p className="mt-1 text-xs text-(--color-text-muted)">
             {loading ? '…' : `${stocks.length} tickers traded by Congress`}
