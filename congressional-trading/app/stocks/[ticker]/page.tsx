@@ -165,10 +165,10 @@ export default function StockDetailPage() {
       {/* Header */}
       <div className="border-b border-(--color-border) px-6 pb-6 pt-6">
         <div className="mx-auto max-w-5xl">
-          <Link href="/stocks" className="mb-4 inline-block text-sm text-(--color-text-secondary) transition hover:text-(--color-text-primary)">
+          <Link href="/stocks" className="mb-4 inline-block text-sm text-(--color-text-secondary) transition hover:text-foreground">
             ← Back to Stocks
           </Link>
-          <h1 className="font-mono text-4xl font-bold tracking-tight text-(--color-text-primary) sm:text-5xl">
+          <h1 className="font-mono text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
             {data.ticker}
           </h1>
           <p className="mt-1 text-sm text-(--color-text-secondary)">{data.tradeCount} congressional trades recorded</p>
@@ -221,7 +221,7 @@ export default function StockDetailPage() {
                       return { start: Math.min(nextStart, safeEnd), end: safeEnd };
                     });
                   }}
-                  className="rounded-sm border border-(--color-border) bg-(--color-bg-subtle) px-2.5 py-1.5 text-[13px] font-semibold text-(--color-text-primary)"
+                  className="rounded-sm border border-(--color-border) bg-(--color-bg-subtle) px-2.5 py-1.5 text-[13px] font-semibold text-foreground"
                 >
                   {availableYears
                     .filter((year) => rangeEnd === null || year <= rangeEnd)
@@ -244,7 +244,7 @@ export default function StockDetailPage() {
                       return { start: safeStart, end: Math.max(nextEnd, safeStart) };
                     });
                   }}
-                  className="rounded-sm border border-(--color-border) bg-(--color-bg-subtle) px-2.5 py-1.5 text-[13px] font-semibold text-(--color-text-primary)"
+                  className="rounded-sm border border-(--color-border) bg-(--color-bg-subtle) px-2.5 py-1.5 text-[13px] font-semibold text-foreground"
                 >
                   {availableYears
                     .filter((year) => rangeStart === null || year >= rangeStart)
@@ -292,7 +292,7 @@ export default function StockDetailPage() {
                 {filteredMembers.length === 0 ? (
                   <p className="py-8 text-center text-sm text-(--color-text-muted)">No member data.</p>
                 ) : (
-                  <div className="max-h-[400px] divide-y divide-(--color-border) overflow-y-auto">
+                  <div className="max-h-100 divide-y divide-(--color-border) overflow-y-auto">
                     {filteredMembers.map((m) => (
                       <button
                         key={m.bioguide}
@@ -300,7 +300,7 @@ export default function StockDetailPage() {
                         className="flex w-full cursor-pointer flex-wrap items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors duration-150 hover:bg-(--color-bg-subtle)"
                       >
                         <Avatar name={m.full_name} party={m.party} size="sm" />
-                        <span className="min-w-0 flex-[1_1_100%] text-sm font-medium text-(--color-text-primary) sm:flex-1">{m.full_name}</span>
+                        <span className="min-w-0 flex-[1_1_100%] text-sm font-medium text-foreground sm:flex-1">{m.full_name}</span>
                         <div className="flex w-full flex-shrink-0 flex-wrap items-center gap-2.5 sm:ml-auto sm:w-auto">
                           {m.buyAmount > 0 && (
                             <span className="text-xs font-semibold text-(--color-positive)">↑ {formatMoney(m.buyAmount)}</span>
@@ -323,7 +323,7 @@ export default function StockDetailPage() {
         {/* Trade history */}
         <div>
           <div className="mb-3 flex flex-wrap items-center gap-3">
-            <h2 className="text-base font-bold text-(--color-text-primary)">Trade History</h2>
+            <h2 className="text-base font-bold text-foreground">Trade History</h2>
             <button className={filterBtnClass(tradeFilter === 'all')} onClick={() => setTradeFilter('all')}>All</button>
             <button className={filterBtnClass(tradeFilter === 'buy')} onClick={() => setTradeFilter('buy')}>Buys</button>
             <button className={filterBtnClass(tradeFilter === 'sell')} onClick={() => setTradeFilter('sell')}>Sells</button>
@@ -333,8 +333,8 @@ export default function StockDetailPage() {
             {filteredTrades.length === 0 ? (
               <p className="py-8 text-center text-sm text-(--color-text-muted)">No trades.</p>
             ) : (
-              <div className="max-h-[480px] overflow-auto">
-                <table className="w-full min-w-[560px] border-collapse">
+              <div className="max-h-120 overflow-auto">
+                <table className="w-full min-w-140 border-collapse">
                   <thead className="sticky top-0 bg-(--color-bg-subtle)">
                     <tr className="border-b border-(--color-border)">
                       <th className="px-3.5 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-(--color-text-muted)">Date</th>
@@ -362,7 +362,7 @@ export default function StockDetailPage() {
                           <td className="px-3.5 py-2.5 text-center text-[11px] font-bold" style={{ color: dirColor }}>
                             {dir === 'buy' ? '↑ BUY' : dir === 'sell' ? '↓ SELL' : t.trade_type ?? '—'}
                           </td>
-                          <td className="px-3.5 py-2.5 text-right text-[13px] font-semibold text-(--color-text-primary)">
+                          <td className="px-3.5 py-2.5 text-right text-[13px] font-semibold text-foreground">
                             {formatMoney(t.amount)}
                           </td>
                         </tr>

@@ -344,7 +344,7 @@ export default function PotentialConflictsTable({ trades, votes, isLoading, erro
   return (
     <div className="overflow-hidden rounded-md border border-(--color-border) bg-white">
       <div className="px-6 pb-2 pt-6">
-        <h2 className="mb-1 text-lg font-bold text-(--color-text-primary)">Potential Conflicts of Interest</h2>
+        <h2 className="mb-1 text-lg font-bold text-foreground">Potential Conflicts of Interest</h2>
         <p className="mb-1 text-[13px] text-(--color-text-muted)">
           Trades within {WINDOW_DAYS} days of a related vote, plus holdings at vote time
         </p>
@@ -372,7 +372,7 @@ export default function PotentialConflictsTable({ trades, votes, isLoading, erro
           </p>
         </div>
       ) : (
-        <div className="max-h-[600px] overflow-y-auto px-4 pb-4">
+        <div className="max-h-150 overflow-y-auto px-4 pb-4">
           {grouped.map((group, gi) => {
             const voteLabel = normalizeVoteLabel(group.memberVoted);
             const voteDateStr = new Date(group.voteDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -384,7 +384,7 @@ export default function PotentialConflictsTable({ trades, votes, isLoading, erro
                 {/* Vote header */}
                 <div className="flex flex-wrap items-start gap-2.5 border-b border-(--color-border) bg-(--color-bg-subtle) px-4 py-3">
                   <div className="min-w-0 flex-1">
-                    <div className="mb-0.5 line-clamp-2 text-[13px] font-bold leading-normal text-(--color-text-primary)">
+                    <div className="mb-0.5 line-clamp-2 text-[13px] font-bold leading-normal text-foreground">
                       {group.voteQuestion}
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">

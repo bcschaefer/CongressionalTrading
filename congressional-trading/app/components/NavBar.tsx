@@ -139,7 +139,7 @@ export default function NavBar() {
         <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
           <Link
             href="/"
-            className="shrink-0 text-base font-bold text-(--color-text-primary)"
+            className="shrink-0 text-base font-bold text-foreground"
             aria-label="Go to Home"
             onMouseEnter={() => prefetchOnHover('/')}
           >
@@ -174,7 +174,7 @@ export default function NavBar() {
             </a>
           </div>
 
-          <div className="relative ml-auto min-w-[200px] max-w-xs flex-1" ref={searchRef}>
+          <div className="relative ml-auto min-w-50 max-w-xs flex-1" ref={searchRef}>
             <form onSubmit={onSubmit} className="flex items-center" role="search" aria-label="Global search">
               <input
                 type="text"
@@ -185,7 +185,7 @@ export default function NavBar() {
                 }}
                 onKeyDown={onKeyDown}
                 placeholder="Search stock or representative"
-                className="w-full rounded-(--radius-sm) border border-(--color-border) bg-white px-3 py-1.5 text-sm text-(--color-text-primary) outline-none transition-all duration-150 placeholder:text-(--color-text-muted) focus:border-(--color-accent) focus:ring-2 focus:ring-(--color-accent)/15"
+                className="w-full rounded-(--radius-sm) border border-(--color-border) bg-white px-3 py-1.5 text-sm text-foreground outline-none transition-all duration-150 placeholder:text-(--color-text-muted) focus:border-(--color-accent) focus:ring-2 focus:ring-(--color-accent)/15"
                 aria-label="Search stock or representative"
               />
               <button
@@ -230,7 +230,7 @@ export default function NavBar() {
                       aria-selected={index === activeIndex}
                     >
                       <span
-                        className={`inline-flex min-w-[44px] shrink-0 items-center justify-center rounded-(--radius-sm) border px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${
+                        className={`inline-flex min-w-11 shrink-0 items-center justify-center rounded-(--radius-sm) border px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${
                           result.type === 'member'
                             ? 'border-(--color-accent) text-(--color-accent)'
                             : 'border-(--color-chip-text)/40 text-(--color-chip-text)'
@@ -239,7 +239,7 @@ export default function NavBar() {
                         {result.type === 'member' ? 'REP' : 'STOCK'}
                       </span>
                       <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className="text-sm font-semibold text-(--color-text-primary)">{result.label}</span>
+                        <span className="text-sm font-semibold text-foreground">{result.label}</span>
                         <span className="truncate text-xs text-(--color-text-muted)">{result.sublabel}</span>
                       </span>
                     </button>

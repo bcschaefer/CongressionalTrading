@@ -89,12 +89,12 @@ export default function NetWorthSection({
   }
 
   function sortHeaderClass(key: 'name' | 'typeCode' | 'owner' | 'valueMid') {
-    return assetSort.key === key ? 'text-(--color-text-primary)' : 'text-(--color-text-muted)';
+    return assetSort.key === key ? 'text-foreground' : 'text-(--color-text-muted)';
   }
 
   return (
     <div className="overflow-hidden rounded-md border border-(--color-border) bg-white p-6 pb-10">
-      <h2 className="mb-1 text-lg font-bold text-(--color-text-primary)">Estimated Net Worth</h2>
+      <h2 className="mb-1 text-lg font-bold text-foreground">Estimated Net Worth</h2>
       {netWorth?.filing && (
         <>
           <p className="mb-3 text-sm text-(--color-text-muted)">
@@ -105,7 +105,7 @@ export default function NetWorthSection({
               <button
                 type="button"
                 onClick={() => setDropdownOpen((v) => !v)}
-                className="inline-flex cursor-pointer items-center gap-3.5 rounded-sm border border-(--color-border) bg-white px-3 py-1.5 text-[13px] font-semibold text-(--color-text-primary)"
+                className="inline-flex cursor-pointer items-center gap-3.5 rounded-sm border border-(--color-border) bg-white px-3 py-1.5 text-[13px] font-semibold text-foreground"
               >
                 View Disclosures ({disclosures.length})
                 <span
@@ -116,7 +116,7 @@ export default function NetWorthSection({
                 </span>
               </button>
               {dropdownOpen && (
-                <div className="absolute top-[calc(100%+6px)] left-1/2 z-50 max-h-[260px] w-[min(280px,calc(100vw-48px))] -translate-x-1/2 overflow-y-auto rounded-md border border-(--color-border) bg-white py-1.5">
+                <div className="absolute top-[calc(100%+6px)] left-1/2 z-50 max-h-65 w-[min(280px,calc(100vw-48px))] -translate-x-1/2 overflow-y-auto rounded-md border border-(--color-border) bg-white py-1.5">
                   {disclosures.map((d) => (
                     <a
                       key={d.id}
@@ -127,7 +127,7 @@ export default function NetWorthSection({
                       }
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center justify-between border-b border-(--color-border) px-4 py-2 text-[13px] text-(--color-text-primary) last:border-b-0 hover:bg-(--color-bg-subtle)"
+                      className="flex items-center justify-between border-b border-(--color-border) px-4 py-2 text-[13px] text-foreground last:border-b-0 hover:bg-(--color-bg-subtle)"
                     >
                       <span className="font-semibold">
                         {d.filing_year}{' '}
@@ -182,7 +182,7 @@ export default function NetWorthSection({
           {netWorth.assets.length > 0 && (
             <>
               <div className="mb-3 ml-1 flex flex-wrap items-baseline gap-4 sm:ml-4">
-                <h3 className="m-0 text-xl font-bold text-(--color-text-primary)">
+                <h3 className="m-0 text-xl font-bold text-foreground">
                   Asset Holdings
                 </h3>
                 <span className="text-xs text-(--color-text-muted)">
@@ -196,7 +196,7 @@ export default function NetWorthSection({
                 </span>
               </div>
               <div className="mb-1.5 overflow-x-auto sm:pl-4">
-                <div className="max-h-[360px] overflow-y-auto rounded-md border border-(--color-border)">
+                <div className="max-h-90 overflow-y-auto rounded-md border border-(--color-border)">
                   <table className="w-full border-collapse text-[13px]">
                     <thead>
                       <tr className="border-b-2 border-(--color-border)">
@@ -251,7 +251,7 @@ export default function NetWorthSection({
                             </span>
                           </td>
                           <td className="px-2.5 py-1.5 text-(--color-text-secondary)">{asset.owner}</td>
-                          <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-(--color-text-primary)">
+                          <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-foreground">
                             {formatMoney(asset.valueMid)}
                           </td>
                         </tr>
@@ -261,7 +261,7 @@ export default function NetWorthSection({
                 </div>
               </div>
               <div className="mt-2 mb-3 px-1 sm:pl-8 sm:pr-6">
-                <div className="text-right font-mono text-[13px] font-bold text-(--color-text-primary)">
+                <div className="text-right font-mono text-[13px] font-bold text-foreground">
                   Total Asset Value: {formatMoney(totalListedAssets)}
                 </div>
               </div>
@@ -270,7 +270,7 @@ export default function NetWorthSection({
 
           {netWorth.liabilities.length > 0 && (
             <>
-              <h3 className="mt-7 mb-2.5 ml-1 text-lg font-bold text-(--color-text-primary) sm:ml-4">
+              <h3 className="mt-7 mb-2.5 ml-1 text-lg font-bold text-foreground sm:ml-4">
                 Liabilities
               </h3>
               <div className="overflow-x-auto sm:pl-4">
@@ -287,7 +287,7 @@ export default function NetWorthSection({
                       <tr key={i}>
                         <td className="px-2.5 py-1.5 pl-4.5 text-(--color-text-secondary)">{l.creditor}</td>
                         <td className="px-2.5 py-1.5 text-(--color-text-secondary)">{l.loanType}</td>
-                        <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-(--color-text-primary)">
+                        <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-foreground">
                           ({formatMoney(l.valueMid)})
                         </td>
                       </tr>

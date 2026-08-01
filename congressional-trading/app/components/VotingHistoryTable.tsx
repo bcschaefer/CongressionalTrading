@@ -30,7 +30,7 @@ export default function VotingHistoryTable({ votes, isLoading, error }: Props) {
   return (
     <div className="overflow-hidden rounded-md border border-(--color-border) bg-white">
       <div className="px-6 pb-2 pt-6">
-        <h2 className="mb-1 text-lg font-bold text-(--color-text-primary)">Voting History</h2>
+        <h2 className="mb-1 text-lg font-bold text-foreground">Voting History</h2>
         <p className="mb-4 text-[13px] text-(--color-text-muted)">Recent votes cast in Congress</p>
       </div>
 
@@ -48,7 +48,7 @@ export default function VotingHistoryTable({ votes, isLoading, error }: Props) {
           <p className="text-sm text-(--color-text-muted)">No voting records found.</p>
         </div>
       ) : (
-        <div className="max-h-[520px] overflow-auto">
+        <div className="max-h-130 overflow-auto">
           <table className="w-full border-collapse text-[13px]">
             <thead className="sticky top-0 z-[1] bg-(--color-bg-subtle)">
               <tr className="border-b border-(--color-border)">
@@ -66,7 +66,7 @@ export default function VotingHistoryTable({ votes, isLoading, error }: Props) {
                 return (
                   <tr key={`${v.date}-${i}`} className="transition-colors duration-150 hover:bg-(--color-bg-subtle)">
                     <td className="whitespace-nowrap px-4 py-2.5 align-top text-(--color-text-secondary)">{dateStr}</td>
-                    <td className="max-w-[520px] px-4 py-2.5 align-top leading-normal text-(--color-text-primary)">
+                    <td className="max-w-130 px-4 py-2.5 align-top leading-normal text-foreground">
                       <div className="mb-0.5 line-clamp-2 font-semibold">{v.question}</div>
                       <div className="text-[11px] text-(--color-text-muted)">{v.description}</div>
                     </td>

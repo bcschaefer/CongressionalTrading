@@ -50,7 +50,7 @@ function TabBar({ activeTab, onSelect }: { activeTab: TabId; onSelect: (tab: Tab
           className={`-mb-px cursor-pointer border-0 border-b-2 bg-transparent px-5.5 py-2.5 text-sm transition-all duration-150 ${
             activeTab === tab
               ? 'border-(--color-accent) font-bold text-(--color-accent)'
-              : 'border-transparent font-medium text-(--color-text-secondary) hover:border-(--color-border-strong) hover:text-(--color-text-primary)'
+              : 'border-transparent font-medium text-(--color-text-secondary) hover:border-(--color-border-strong) hover:text-foreground'
           }`}
         >
           {TAB_LABELS[tab]}
@@ -242,7 +242,7 @@ export default function CongressmanPage() {
     () => (
       <div className="overflow-hidden rounded-md border border-(--color-border) bg-white p-6">
         <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 className="text-lg font-bold text-(--color-text-primary)">
+          <h2 className="text-lg font-bold text-foreground">
             Trades {tradeView === 'ticker' ? 'by Ticker' : '& Net Worth by Year'}
           </h2>
           {/* Toggle */}
@@ -253,7 +253,7 @@ export default function CongressmanPage() {
                 type="button"
                 onClick={() => setTradeView(v)}
                 className={`cursor-pointer px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 ${i === 0 ? 'rounded-l-[5px]' : 'rounded-r-[5px] border-l border-(--color-border)'} ${
-                  tradeView === v ? 'bg-(--color-accent) text-white' : 'text-(--color-text-secondary) hover:bg-(--color-bg-subtle) hover:text-(--color-text-primary)'
+                  tradeView === v ? 'bg-(--color-accent) text-white' : 'text-(--color-text-secondary) hover:bg-(--color-bg-subtle) hover:text-foreground'
                 }`}
               >
                 {v === 'ticker' ? 'By Ticker' : 'By Year'}
@@ -307,7 +307,7 @@ export default function CongressmanPage() {
       {/* Header */}
       <div className="border-b border-(--color-border) px-4 pb-7 pt-6 md:px-10">
         <div className="mx-auto max-w-7xl">
-          <button onClick={() => router.back()} className="mb-5 inline-block cursor-pointer text-sm text-(--color-text-secondary) transition hover:text-(--color-text-primary)">
+          <button onClick={() => router.back()} className="mb-5 inline-block cursor-pointer text-sm text-(--color-text-secondary) transition hover:text-foreground">
             ← Back
           </button>
 
@@ -316,7 +316,7 @@ export default function CongressmanPage() {
 
             {/* Info */}
             <div className="min-w-0">
-              <h1 className="text-2xl font-bold tracking-tight text-(--color-text-primary) md:text-3xl">{member.full_name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">{member.full_name}</h1>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-(--color-text-secondary)">
                 {member.party && (
                   <span className="font-semibold" style={{ color: `var(${partyTokens(member.party).text})` }}>
@@ -364,7 +364,7 @@ export default function CongressmanPage() {
         ) : activeTab === 'networth' ? (
           <div className="space-y-8">
             <div className="overflow-hidden rounded-md border border-(--color-border) bg-white p-6">
-              <h2 className="mb-3.5 text-lg font-bold text-(--color-text-primary)">
+              <h2 className="mb-3.5 text-lg font-bold text-foreground">
                 Estimated Net Worth
               </h2>
               <NetWorthLineChart

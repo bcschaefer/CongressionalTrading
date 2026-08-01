@@ -28,7 +28,7 @@ function HeroBanner() {
   return (
     <div className="border-b border-(--color-border) px-4 pb-8 pt-10 md:px-8">
       <div className="mx-auto max-w-5xl">
-        <h1 className="text-3xl font-bold leading-tight tracking-tight text-(--color-text-primary) sm:text-4xl">
+        <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
           Your lawmakers are <span className="text-(--color-accent)">trading</span> <span className="text-(--color-negative)">stocks</span>.
         </h1>
         <p className="mt-3 max-w-xl text-base text-(--color-text-secondary)">
@@ -43,7 +43,7 @@ function HeroBanner() {
           </Link>
           <Link
             href="/stocks"
-            className="cursor-pointer rounded-(--radius-sm) border border-(--color-border) px-4 py-2 text-sm font-semibold text-(--color-text-primary) transition-all duration-150 hover:-translate-y-0.5 hover:border-(--color-accent) hover:text-(--color-accent) hover:shadow-sm"
+            className="cursor-pointer rounded-(--radius-sm) border border-(--color-border) px-4 py-2 text-sm font-semibold text-foreground transition-all duration-150 hover:-translate-y-0.5 hover:border-(--color-accent) hover:text-(--color-accent) hover:shadow-sm"
           >
             Explore Stocks
           </Link>
@@ -64,7 +64,7 @@ type DetailData = { totalAssets: number; totalLiabilities: number; netWorth: num
 function NetWorthDetailPanel({ year, data, loading }: { year: number; data: DetailData | null; loading: boolean }) {
   return (
     <div className="mt-3 rounded-(--radius-sm) border border-(--color-border) bg-(--color-bg-subtle) p-3 text-[13px]">
-      <div className="mb-1.5 font-bold text-(--color-text-primary)">{year} Breakdown</div>
+      <div className="mb-1.5 font-bold text-foreground">{year} Breakdown</div>
       {loading ? (
         <div className="text-(--color-text-secondary)">Parsing PDF…</div>
       ) : data ? (
@@ -239,7 +239,7 @@ export default function Hero() {
                 type="button"
                 onClick={() => setSortMode('prolific')}
                 className={`cursor-pointer rounded-l-[5px] px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors duration-150 ${
-                  sortMode === 'prolific' ? 'bg-(--color-accent) text-white' : 'text-(--color-text-secondary) hover:bg-(--color-bg-subtle) hover:text-(--color-text-primary)'
+                  sortMode === 'prolific' ? 'bg-(--color-accent) text-white' : 'text-(--color-text-secondary) hover:bg-(--color-bg-subtle) hover:text-foreground'
                 }`}
               >
                 Prolific
@@ -248,7 +248,7 @@ export default function Hero() {
                 type="button"
                 onClick={() => setSortMode('recent')}
                 className={`cursor-pointer rounded-r-[5px] border-l border-(--color-border) px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors duration-150 ${
-                  sortMode === 'recent' ? 'bg-(--color-accent) text-white' : 'text-(--color-text-secondary) hover:bg-(--color-bg-subtle) hover:text-(--color-text-primary)'
+                  sortMode === 'recent' ? 'bg-(--color-accent) text-white' : 'text-(--color-text-secondary) hover:bg-(--color-bg-subtle) hover:text-foreground'
                 }`}
               >
                 Recent

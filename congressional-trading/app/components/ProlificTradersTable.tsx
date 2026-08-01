@@ -65,7 +65,7 @@ export default function ProlificTradersTable({
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-(--color-text-muted)">#{index + 1}</span>
               <Avatar name={group.congressman} size="sm" />
-              <span className="text-sm font-semibold text-(--color-text-primary)">{group.congressman}</span>
+              <span className="text-sm font-semibold text-foreground">{group.congressman}</span>
               {group.chamber && (
                 <span
                   className={`text-[11px] font-semibold ${group.chamber.toLowerCase() === 'senate' ? 'text-(--color-negative)' : 'text-(--color-accent)'}`}
@@ -91,7 +91,7 @@ export default function ProlificTradersTable({
                 )}
               </span>
               <span>{getTradeCountLabel(group.trades.length)}</span>
-              <span className="font-semibold text-(--color-text-primary)">{formatMoney(group.totalAmount)}</span>
+              <span className="font-semibold text-foreground">{formatMoney(group.totalAmount)}</span>
             </div>
           </button>
         ))}
@@ -136,7 +136,7 @@ export default function ProlificTradersTable({
                 <td className="px-3 py-3 text-sm font-medium">
                   <div className="flex items-center gap-2">
                     <Avatar name={group.congressman} size="sm" />
-                    <span className="font-semibold text-(--color-text-primary)">{group.congressman}</span>
+                    <span className="font-semibold text-foreground">{group.congressman}</span>
                     {group.chamber && (
                       <span
                         className={`shrink-0 text-[11px] font-semibold ${group.chamber.toLowerCase() === 'senate' ? 'text-(--color-negative)' : 'text-(--color-accent)'}`}
@@ -165,7 +165,7 @@ export default function ProlificTradersTable({
                   )}
                 </td>
                 <td className="px-3 py-3 text-right text-sm text-(--color-text-secondary)">{getTradeCountLabel(group.trades.length)}</td>
-                <td className="px-3 py-3 text-right text-sm font-semibold text-(--color-text-primary)">{formatMoney(group.totalAmount)}</td>
+                <td className="px-3 py-3 text-right text-sm font-semibold text-foreground">{formatMoney(group.totalAmount)}</td>
               </tr>
             ))}
           </tbody>

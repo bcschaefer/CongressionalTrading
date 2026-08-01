@@ -147,10 +147,10 @@ export default function RepresentativesPage() {
       {/* Header */}
       <div className="border-b border-(--color-border) px-6 pb-6 pt-6">
         <div className="mx-auto max-w-6xl">
-          <Link href="/" className="mb-4 inline-block text-sm text-(--color-text-secondary) transition hover:text-(--color-text-primary)">
+          <Link href="/" className="mb-4 inline-block text-sm text-(--color-text-secondary) transition hover:text-foreground">
             ← Back to home
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-(--color-text-primary) sm:text-3xl">Members of Congress</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Members of Congress</h1>
           <p className="mt-2 max-w-xl text-sm text-(--color-text-secondary)">
             Every member of Congress must disclose their stock trades. We make it easy to see who&rsquo;s betting big.
           </p>
@@ -165,7 +165,7 @@ export default function RepresentativesPage() {
               placeholder="Search members…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full max-w-xs rounded-sm border border-(--color-border) px-3.5 py-2 text-sm text-(--color-text-primary) outline-none placeholder:text-(--color-text-muted) focus:border-(--color-accent)"
+              className="w-full max-w-xs rounded-sm border border-(--color-border) px-3.5 py-2 text-sm text-foreground outline-none placeholder:text-(--color-text-muted) focus:border-(--color-accent)"
             />
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function RepresentativesPage() {
         ) : (
           <div className="overflow-hidden rounded-md border border-(--color-border) bg-white">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px] border-collapse">
+              <table className="w-full min-w-175 border-collapse">
                 <thead>
                   <tr>
                     <Th columnKey="full_name" label="Name" {...thProps} />
@@ -244,10 +244,10 @@ export default function RepresentativesPage() {
                         onMouseLeave={() => setHoveredBioguide(null)}
                         className={`cursor-pointer transition-colors duration-150 ${hoveredBioguide === m.bioguide ? 'bg-(--color-bg-subtle)' : 'bg-white'}`}
                       >
-                        <td className="whitespace-nowrap px-3.5 py-2.5 text-[14px]">
+                        <td className="whitespace-nowrap px-3.5 py-2.5 text-sm">
                           <div className="flex items-center gap-2.5">
                             <Avatar name={m.full_name} party={m.party} size="sm" />
-                            <span className={`font-semibold ${m.is_active ? 'text-(--color-text-primary)' : 'text-(--color-text-muted)'}`}>{m.full_name}</span>
+                            <span className={`font-semibold ${m.is_active ? 'text-foreground' : 'text-(--color-text-muted)'}`}>{m.full_name}</span>
                           </div>
                         </td>
                         <td

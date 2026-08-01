@@ -33,7 +33,7 @@ export default function FilterDropdown({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`flex min-w-27.5 cursor-pointer items-center justify-between gap-1.5 whitespace-nowrap rounded-sm border border-(--color-border) px-2.5 py-1.5 text-[13px] font-semibold text-(--color-text-primary) outline-none transition-colors duration-150 hover:border-(--color-border-strong) ${open ? 'border-(--color-accent) bg-(--color-bg-subtle)' : 'bg-white'}`}
+        className={`flex min-w-27.5 cursor-pointer items-center justify-between gap-1.5 whitespace-nowrap rounded-sm border border-(--color-border) px-2.5 py-1.5 text-[13px] font-semibold text-foreground outline-none transition-colors duration-150 hover:border-(--color-border-strong) ${open ? 'border-(--color-accent) bg-(--color-bg-subtle)' : 'bg-white'}`}
       >
         <span>{selectedLabel}</span>
         <span className="ml-1 text-[10px] text-(--color-text-secondary)">{open ? '▴' : '▾'}</span>
@@ -45,7 +45,7 @@ export default function FilterDropdown({
               key={opt.value}
               type="button"
               onClick={() => { onChange(opt.value); setOpen(false); }}
-              className={`block w-full cursor-pointer border-none px-3 py-2 text-left text-[13px] transition-colors duration-150 hover:bg-(--color-bg-subtle) ${opt.value === value ? 'bg-(--color-bg-subtle) font-bold text-(--color-accent)' : 'bg-transparent font-medium text-(--color-text-primary)'}`}
+              className={`block w-full cursor-pointer border-none px-3 py-2 text-left text-[13px] transition-colors duration-150 hover:bg-(--color-bg-subtle) ${opt.value === value ? 'bg-(--color-bg-subtle) font-bold text-(--color-accent)' : 'bg-transparent font-medium text-foreground'}`}
             >
               {opt.label}
             </button>

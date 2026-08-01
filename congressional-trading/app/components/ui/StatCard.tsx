@@ -13,12 +13,12 @@ type StatCardProps = {
 export default function StatCard({ label, value, sub, valueColor, chip }: StatCardProps) {
   return (
     <div
-      className="min-w-0 flex-1 basis-[220px] rounded-(--radius-md) border border-(--color-border) border-t-2 bg-white px-5 py-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm"
+      className="min-w-0 flex-1 basis-55 rounded-(--radius-md) border border-(--color-border) border-t-2 bg-white px-5 py-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm"
       style={{ borderTopColor: valueColor ?? 'var(--color-accent)' }}
     >
       <div className="text-[11px] font-semibold uppercase tracking-wide text-(--color-text-muted)">{label}</div>
       <div className="mt-1 flex items-center gap-2">
-        <span className="text-[22px] font-bold text-(--color-text-primary)" style={valueColor ? { color: valueColor } : undefined}>
+        <span className="text-[22px] font-bold text-foreground" style={valueColor ? { color: valueColor } : undefined}>
           {value}
         </span>
         {chip && (

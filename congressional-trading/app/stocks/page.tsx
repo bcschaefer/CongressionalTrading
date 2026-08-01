@@ -66,10 +66,10 @@ export default function StocksPage() {
       {/* Header */}
       <div className="border-b border-(--color-border) px-6 pb-6 pt-6">
         <div className="mx-auto max-w-5xl">
-          <Link href="/" className="mb-4 inline-block text-sm text-(--color-text-secondary) transition hover:text-(--color-text-primary)">
+          <Link href="/" className="mb-4 inline-block text-sm text-(--color-text-secondary) transition hover:text-foreground">
             ← Back to home
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-(--color-text-primary) sm:text-3xl">The Congressional Watchlist</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">The Congressional Watchlist</h1>
           <p className="mt-2 max-w-xl text-sm text-(--color-text-secondary)">
             These are the stocks Congress is buying and selling. Coincidence or conviction? You decide.
           </p>
@@ -84,7 +84,7 @@ export default function StocksPage() {
               placeholder="Search ticker symbol…"
               value={query}
               onChange={(e) => setQuery(e.target.value.toUpperCase())}
-              className="w-full max-w-xs rounded-sm border border-(--color-border) px-3.5 py-2 font-mono text-sm text-(--color-text-primary) outline-none placeholder:text-(--color-text-muted) focus:border-(--color-accent)"
+              className="w-full max-w-xs rounded-sm border border-(--color-border) px-3.5 py-2 font-mono text-sm text-foreground outline-none placeholder:text-(--color-text-muted) focus:border-(--color-accent)"
             />
           </div>
         </div>
@@ -129,19 +129,19 @@ export default function StocksPage() {
                         </span>
 
                         {/* Ticker */}
-                        <span className="w-16 shrink-0 font-mono text-[15px] font-bold text-(--color-text-primary)">
+                        <span className="w-16 shrink-0 font-mono text-[15px] font-bold text-foreground">
                           {s.ticker}
                         </span>
 
                         {/* Bar */}
-                        <div className="relative h-2 min-w-[100px] flex-1 overflow-hidden rounded-sm bg-(--color-bg-subtle)">
+                        <div className="relative h-2 min-w-25 flex-1 overflow-hidden rounded-sm bg-(--color-bg-subtle)">
                           <div className="absolute left-0 top-0 h-full rounded-l-sm bg-(--color-positive)" style={{ width: `${buyPct}%` }} />
                           <div className="absolute top-0 h-full bg-(--color-negative)" style={{ left: `${buyPct}%`, width: `${sellPct}%` }} />
                         </div>
 
                         {/* Amounts */}
                         <div className="ml-0 flex w-full flex-wrap items-center gap-2 shrink-0 sm:ml-auto sm:w-auto sm:gap-3">
-                          <span className="min-w-0 text-left text-[13px] font-bold text-(--color-text-primary) sm:min-w-17.5 sm:text-right">
+                          <span className="min-w-0 text-left text-[13px] font-bold text-foreground sm:min-w-17.5 sm:text-right">
                             {formatMoney(s.totalAmount)}
                           </span>
                           <span className="min-w-0 text-left text-[11px] text-(--color-positive) sm:min-w-12 sm:text-right">
