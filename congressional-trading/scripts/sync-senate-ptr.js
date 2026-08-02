@@ -254,6 +254,7 @@ async function run() {
               data: parsedTrades.map((trade) => ({
                 disclosure_id: disclosure.id,
                 ticker: trade.ticker,
+                asset_name: trade.assetName ?? null,
                 trade_date: trade.tradeDate,
                 trade_type: trade.tradeType,
                 amount: trade.amount,

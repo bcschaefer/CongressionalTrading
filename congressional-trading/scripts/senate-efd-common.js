@@ -504,18 +504,27 @@ function parseAmountRange(value) {
   return null;
 }
 
-function extractTicker(rowText) {
-  const inParens = rowText.match(/\(([A-Z][A-Z0-9.-]{0,9})\)/);
+// The report's transaction table has a fixed column order:
+// [#, Transaction Date, Owner, Ticker, Asset Name, Asset Type, Type, Amount, Comment].
+// The Ticker cell is literally "--" for anything without a real ticker (bonds,
+// structured notes, etc) — trust that column instead of pattern-matching the
+// whole row's flattened text, which false-positives on things like a state
+// abbreviation inside a municipal bond's name ("PITTSBURGH PA WTR...").
+function extractTicker(cellText) {
+  const t = (cellText ?? '').trim();
+  if (!t || t === '--' || t.toUpperCase() === 'N/A') return null;
+
+  const inParens = t.match(/\(([A-Z][A-Z0-9.-]{0,9})\)/);
   if (inParens) return inParens[1];
 
-  const fromSymbol = rowText.match(/\b([A-Z]{1,5})(?:\s+common stock|\s+inc\.?|\s+corp\.?|\s+etf)?\b/);
-  if (fromSymbol) return fromSymbol[1];
+  const leading = t.match(/^([A-Z][A-Z0-9.-]{0,9})\b/);
+  if (leading) return leading[1];
 
   return null;
 }
 
-function extractTradeType(rowText) {
-  const t = rowText.toLowerCase();
+function extractTradeType(cellText) {
+  const t = (cellText ?? '').toLowerCase();
   if (/\b(purchase|buy|acquisition|received)\b/.test(t)) return 'P';
   if (/\b(sale|sell|sold|divest)\b/.test(t)) return 'S';
   if (/\b(exchange)\b/.test(t)) return 'X';
@@ -542,16 +551,17 @@ function extractTransactionsFromReportHtml(html) {
       cellMatch = cellRegex.exec(rowHtml);
     }
 
-    const rowText = normalizeWhitespace(cells.join(' '));
-    if (rowText.length > 0) {
-      const type = extractTradeType(rowText);
-      const dateMatch = rowText.match(/\b\d{2}\/\d{2}\/\d{4}\b/);
+    if (cells.length >= 8) {
+      const [, dateCell, , tickerCell, assetCell, , typeCell, amountCell] = cells;
+      const type = extractTradeType(typeCell);
+      const dateMatch = (dateCell ?? '').match(/\d{2}\/\d{2}\/\d{4}/);
       const dateIso = dateMatch ? toIsoDate(dateMatch[0]) : null;
-      const amount = parseAmountRange(rowText);
+      const amount = parseAmountRange(amountCell);
 
       if (type && dateIso && amount) {
         trades.push({
-          ticker: extractTicker(rowText),
+          ticker: extractTicker(tickerCell),
+          assetName: assetCell && assetCell.trim() ? assetCell.trim() : null,
           tradeType: type,
           tradeDate: dateIso,
           amount: amount.amount,

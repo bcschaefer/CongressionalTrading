@@ -7,6 +7,7 @@ type TradeResponse = {
   congressman: string;
   chamber: string | null;
   party: string | null;
+  state: string | null;
   type: string;
   amount: number;
   ticker: string;
@@ -74,6 +75,7 @@ export async function GET(request: NextRequest) {
             congressman: row.members.full_name,
             chamber: row.members.chamber ?? null,
             party: row.members.party ?? null,
+            state: row.members.state ?? null,
             type: (row.transaction_type ?? 'UNKNOWN').toUpperCase(),
             amount: parseAmountRange(row.amount_range),
             ticker: row.ticker ?? 'N/A',
@@ -91,9 +93,14 @@ export async function GET(request: NextRequest) {
         congressman: row.members.full_name,
         chamber: row.members.chamber ?? null,
         party: row.members.party ?? null,
+        state: row.members.state ?? null,
         type: (trade.trade_type ?? row.transaction_type ?? 'UNKNOWN').toUpperCase(),
         amount: trade.amount ?? parseAmountRange(row.amount_range),
-        ticker: trade.ticker ?? row.ticker ?? 'N/A',
+        // Only fall back to the disclosure-level ticker guess when this trade has no
+        // per-trade data at all — an asset_name with no ticker is itself a real,
+        // trustworthy "no ticker" signal (a bond, structured note, etc.) and must not
+        // be overridden by the disclosure's (often stale/first-trade-only) ticker.
+        ticker: trade.ticker ?? (trade.asset_name ? null : row.ticker) ?? 'N/A',
         assetName: trade.asset_name ?? null,
         date: trade.trade_date ?? row.trade_date ?? '',
         datePublished: row.filed_date ?? null,
