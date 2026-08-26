@@ -13,31 +13,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/stocks`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.7 },
   ];
 
-  // Dynamic congressman pages
-  const members = await prisma.members.findMany({
-    select: { bioguide: true },
-  });
+  // This runs at build time (and daily on revalidate) — a database outage here must
+  // degrade to the static routes rather than fail the whole build/deploy.
+  try {
+    const members = await prisma.members.findMany({
+      select: { bioguide: true },
+    });
 
-  const memberRoutes: MetadataRoute.Sitemap = members.map((m) => ({
-    url: `${BASE}/congressman/${m.bioguide}`,
-    changeFrequency: 'weekly' as const,
-    priority: 0.6,
-  }));
-
-  // Dynamic stock ticker pages
-  const tickers = await prisma.disclosures.findMany({
-    where: { ticker: { not: null } },
-    select: { ticker: true },
-    distinct: ['ticker'],
-  });
-
-  const stockRoutes: MetadataRoute.Sitemap = tickers
-    .filter((t) => t.ticker)
-    .map((t) => ({
-      url: `${BASE}/stocks/${t.ticker}`,
+    const memberRoutes: MetadataRoute.Sitemap = members.map((m) => ({
+      url: `${BASE}/congressman/${m.bioguide}`,
       changeFrequency: 'weekly' as const,
-      priority: 0.5,
+      priority: 0.6,
     }));
 
-  return [...staticRoutes, ...memberRoutes, ...stockRoutes];
+    const tickers = await prisma.disclosures.findMany({
+      where: { ticker: { not: null } },
+      select: { ticker: true },
+      distinct: ['ticker'],
+    });
+
+    const stockRoutes: MetadataRoute.Sitemap = tickers
+      .filter((t) => t.ticker)
+      .map((t) => ({
+        url: `${BASE}/stocks/${t.ticker}`,
+        changeFrequency: 'weekly' as const,
+        priority: 0.5,
+      }));
+
+    return [...staticRoutes, ...memberRoutes, ...stockRoutes];
+  } catch (error) {
+    console.error('Failed to build dynamic sitemap routes, falling back to static routes', error);
+    return staticRoutes;
+  }
 }
