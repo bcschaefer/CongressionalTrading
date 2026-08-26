@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 type TradeResponse = {
   id: number;
@@ -17,28 +18,6 @@ type TradeResponse = {
   description: string;
 };
 
-function parseAmountRange(amountRange: string | null): number {
-  if (!amountRange) {
-    return 0;
-  }
-
-  const values = amountRange
-    .replace(/[$,]/g, '')
-    .split(' - ')
-    .map((value) => Number.parseFloat(value.trim()))
-    .filter((value) => Number.isFinite(value));
-
-  if (values.length === 0) {
-    return 0;
-  }
-
-  if (values.length === 1) {
-    return values[0];
-  }
-
-  return (values[0] + values[1]) / 2;
-}
-
 // `revalidate` alone doesn't reliably re-run this route in production — Next.js can
 // treat it as fully static and freeze it at whatever the last build produced. Force
 // per-request execution and let the Cache-Control header below handle CDN caching.
@@ -52,42 +31,46 @@ export async function GET(request: NextRequest) {
     const limit = limitParam ? Number.parseInt(limitParam, 10) : null;
     const offset = offsetParam ? Number.parseInt(offsetParam, 10) : 0;
 
-    const rows = await prisma.disclosures.findMany({
-      orderBy: {
-        id: 'desc',
-      },
-      include: {
-        members: true,
-        trades: {
-          orderBy: {
-            id: 'desc',
-          },
-        },
-      },
-    });
+    // A handful of disclosures have corrupted trade_date values from PDF parsing
+    // (e.g. "3031-04-30", "2220-04-07") — exclude anything outside a sane range.
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const isSaneDate = (date: string) => date >= '2000-01-01' && date <= todayIso;
 
-    const allTrades: TradeResponse[] = rows.flatMap((row: (typeof rows)[number]) => {
-      if (row.trades.length === 0) {
-        return [
-          {
-            id: row.id,
-            bioguide: row.bioguide,
-            congressman: row.members.full_name,
-            chamber: row.members.chamber ?? null,
-            party: row.members.party ?? null,
-            state: row.members.state ?? null,
-            type: (row.transaction_type ?? 'UNKNOWN').toUpperCase(),
-            amount: parseAmountRange(row.amount_range),
-            ticker: row.ticker ?? 'N/A',
-            assetName: null,
-            date: row.trade_date ?? '',
-            datePublished: row.filed_date ?? null,
-            description: row.sector ? `${row.sector} disclosure` : 'Disclosure filing',
-          } satisfies TradeResponse,
-        ];
-      }
+    // Filtering/sorting/pagination pushed into the query itself instead of fetching
+    // every trade in the database on every request and doing this in JS — this
+    // previously pulled the entire disclosures+trades+members join (tens of
+    // thousands of rows) for every homepage load and every "Load more" click.
+    //
+    // Trade-off: this drops the previous fallback that synthesized a pseudo-trade
+    // for disclosures with zero parsed trade rows (using the disclosure's own
+    // ticker/amount_range/trade_date) — those are disclosures where line-item
+    // parsing failed entirely, and folding them into the same paginated, sorted
+    // query as real trades isn't expressible without a much costlier query. That
+    // fallback also covered a trade with a null `amount` by parsing the
+    // disclosure's amount_range string; trades.amount is reliably populated by the
+    // sync pipeline in practice, so this is a minor, acceptable narrowing.
+    const where: Prisma.tradesWhereInput = {
+      amount: { gt: 0 },
+      trade_date: { gte: '2000-01-01', lte: todayIso },
+      OR: [{ ticker: { not: null } }, { asset_name: { not: null } }, { disclosures: { ticker: { not: null } } }],
+    };
 
-      return row.trades.map((trade: (typeof row.trades)[number]): TradeResponse => ({
+    const [total, tradeRows] = await Promise.all([
+      prisma.trades.count({ where }),
+      prisma.trades.findMany({
+        where,
+        orderBy: [{ trade_date: 'desc' }, { id: 'desc' }],
+        ...(limit != null ? { skip: offset, take: limit } : {}),
+        include: { disclosures: { include: { members: true } } },
+      }),
+    ]);
+
+    const trades: TradeResponse[] = tradeRows.flatMap((trade) => {
+      const row = trade.disclosures;
+      // Schema allows a trade with no parent disclosure, but the sync pipeline never
+      // actually creates one that way — skip defensively rather than crash.
+      if (!row) return [];
+      return [{
         id: trade.id,
         bioguide: row.bioguide,
         congressman: row.members.full_name,
@@ -95,7 +78,7 @@ export async function GET(request: NextRequest) {
         party: row.members.party ?? null,
         state: row.members.state ?? null,
         type: (trade.trade_type ?? row.transaction_type ?? 'UNKNOWN').toUpperCase(),
-        amount: trade.amount ?? parseAmountRange(row.amount_range),
+        amount: trade.amount ?? 0,
         // Only fall back to the disclosure-level ticker guess when this trade has no
         // per-trade data at all — an asset_name with no ticker is itself a real,
         // trustworthy "no ticker" signal (a bond, structured note, etc.) and must not
@@ -103,33 +86,15 @@ export async function GET(request: NextRequest) {
         ticker: trade.ticker ?? (trade.asset_name ? null : row.ticker) ?? 'N/A',
         assetName: trade.asset_name ?? null,
         date: trade.trade_date ?? row.trade_date ?? '',
-        datePublished: row.filed_date ?? null,
+        datePublished: row.filed_date && isSaneDate(row.filed_date) ? row.filed_date : null,
         description: row.sector ? `${row.sector} disclosure` : 'Disclosure filing',
-      }));
+      }];
     });
-    // A handful of disclosures have corrupted trade_date values from PDF parsing
-    // (e.g. "3031-04-30", "2220-04-07") — exclude anything outside a sane range.
-    const todayIso = new Date().toISOString().slice(0, 10);
-    const isSaneDate = (date: string) => date >= '2000-01-01' && date <= todayIso;
 
-    const trades = allTrades
-      .filter(
-        (trade: TradeResponse) =>
-          (trade.ticker !== 'N/A' || trade.assetName) && trade.amount > 0 && isSaneDate(trade.date)
-      )
-      .map((trade: TradeResponse) => ({
-        ...trade,
-        datePublished: trade.datePublished && isSaneDate(trade.datePublished) ? trade.datePublished : null,
-      }))
-      // Most recently traded first — `id desc` (insertion order) is only a rough
-      // proxy for that, so sort on the real trade date explicitly.
-      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id));
-
-    const total = trades.length;
-    const page = limit != null ? trades.slice(offset, offset + limit) : trades;
-
-    return NextResponse.json({ trades: page, total }, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+    return NextResponse.json({ trades, total }, {
+      // Trades only change once a day via the sync cron — cache generously so
+      // repeat visits within the window are served from the edge, not the DB.
+      headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200' },
     });
   } catch (error) {
     console.error('Failed to fetch recent trades', error);
