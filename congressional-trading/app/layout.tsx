@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import NavBar from "./components/NavBar";
 import GradientRule from "./components/ui/GradientRule";
+import DatabaseStatusGate from "./components/DatabaseStatusGate";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
@@ -39,7 +40,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NavBar />
-        <main>{children}</main>
+        <main>
+          <DatabaseStatusGate>{children}</DatabaseStatusGate>
+        </main>
         <GradientRule />
         <footer className="bg-(--color-ink) px-6 py-7">
           <div className="mx-auto max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
