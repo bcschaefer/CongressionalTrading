@@ -23,12 +23,14 @@ type SeriesPoint = { date: Date; close: number };
 type MarkerPoint = {
   id: number;
   date: Date;
+  close: number;
   direction: 'buy' | 'sell' | 'other';
   amount: number;
 };
 type MarkerCluster = {
   direction: 'buy' | 'sell' | 'other';
   px: number;
+  py: number;
   count: number;
   totalAmount: number;
   minDate: Date;
@@ -72,14 +74,25 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
 
   const markers = useMemo<MarkerPoint[]>(() => {
     if (series.length === 0) return [];
+    const bisectDate = d3.bisector<SeriesPoint, Date>((d) => d.date).left;
+
     return trades
       .filter((t) => t.trade_date)
-      .map((t) => ({
-        id: t.id,
-        date: new Date(`${t.trade_date}T00:00:00`),
-        direction: tradeDirection(t.trade_type),
-        amount: t.amount,
-      }))
+      .map((t) => {
+        const date = new Date(`${t.trade_date}T00:00:00`);
+        const idx = bisectDate(series, date);
+        const lo = series[Math.max(0, idx - 1)];
+        const hi = series[Math.min(series.length - 1, idx)];
+        const nearest =
+          !hi ? lo : !lo ? hi : Math.abs(hi.date.getTime() - date.getTime()) < Math.abs(date.getTime() - lo.date.getTime()) ? hi : lo;
+        return {
+          id: t.id,
+          date,
+          close: nearest.close,
+          direction: tradeDirection(t.trade_type),
+          amount: t.amount,
+        };
+      })
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [trades, series]);
 
@@ -93,14 +106,9 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
 
     const width = 1000;
     const height = 420;
-    // Bottom margin fits both the date-axis labels and, above them, a thin strip for
-    // trade-marker ticks — so trades read as annotations below the line, not clutter
-    // sitting on top of the price itself.
-    const margin = { top: 20, right: 24, bottom: 56, left: 64 };
+    const margin = { top: 20, right: 24, bottom: 32, left: 64 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
-    const tickBandTop = innerHeight + 10;
-    const tickBandHeight = 14;
 
     const trendColor =
       series[series.length - 1].close >= series[0].close ? 'var(--color-positive)' : 'var(--color-negative)';
@@ -154,7 +162,7 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
 
     const xAxis = g
       .append('g')
-      .attr('transform', `translate(0,${innerHeight + margin.bottom - 16})`)
+      .attr('transform', `translate(0,${innerHeight})`)
       .call(d3.axisBottom(x).ticks(Math.min(6, series.length)).tickSize(0).tickFormat((d) => formatAxisDate(d as Date)));
     xAxis.select('.domain').remove();
     xAxis.selectAll('text').attr('fill', 'var(--color-text-muted)').attr('font-size', '11px');
@@ -223,7 +231,7 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
     const crosshair = g
       .append('line')
       .attr('y1', 0)
-      .attr('y2', tickBandTop + tickBandHeight)
+      .attr('y2', innerHeight)
       .attr('stroke', 'var(--color-border-strong)')
       .attr('stroke-width', 1)
       .style('opacity', 0);
@@ -266,13 +274,14 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
         hideTooltip();
       });
 
-    // Cluster trades that land within a few pixels of each other (same direction) into
-    // a single density-scaled tick instead of a pile of overlapping marks — tick
-    // height/opacity carries how many trades are represented.
+    // Cluster trades that land within a few pixels of each other (same direction) into a
+    // single density-scaled bubble instead of a pile of overlapping, unreadable dots — the
+    // visual weight (size) carries how many trades are represented, like a mini heatmap.
     const PIXEL_BUCKET = 10;
     type ClusterAccum = {
       direction: 'buy' | 'sell' | 'other';
       pxSum: number;
+      pySum: number;
       count: number;
       totalAmount: number;
       minDate: Date;
@@ -281,34 +290,51 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
     const clusterMap = new Map<string, ClusterAccum>();
     for (const m of markers) {
       const px = x(m.date);
+      const py = y(m.close);
       const bucketKey = `${m.direction}:${Math.round(px / PIXEL_BUCKET)}`;
       const existing = clusterMap.get(bucketKey);
       if (existing) {
         existing.pxSum += px;
+        existing.pySum += py;
         existing.count += 1;
         existing.totalAmount += m.amount;
         if (m.date < existing.minDate) existing.minDate = m.date;
         if (m.date > existing.maxDate) existing.maxDate = m.date;
       } else {
-        clusterMap.set(bucketKey, { direction: m.direction, pxSum: px, count: 1, totalAmount: m.amount, minDate: m.date, maxDate: m.date });
+        clusterMap.set(bucketKey, {
+          direction: m.direction,
+          pxSum: px,
+          pySum: py,
+          count: 1,
+          totalAmount: m.amount,
+          minDate: m.date,
+          maxDate: m.date,
+        });
       }
     }
 
     const clusters: MarkerCluster[] = Array.from(clusterMap.values()).map((c) => ({
       direction: c.direction,
       px: c.pxSum / c.count,
+      py: c.pySum / c.count,
       count: c.count,
       totalAmount: c.totalAmount,
       minDate: c.minDate,
       maxDate: c.maxDate,
     }));
 
+    // Base dot is deliberately below the usual marker floor (r>=4) — with many trades on
+    // one line, small individual dots plus size-scaled clusters read far better than large
+    // dots that bury the price line underneath them.
+    const BASE_R = 3;
+    const MAX_R = 14;
     // A fixed domain (not each chart's own max) so a 3-trade cluster always reads as
     // "a few trades" and a 40-trade cluster always reads as "very dense", consistent
-    // across tickers.
+    // across tickers — a per-chart-relative max would make the same count look tiny on
+    // a heavily-traded ticker and huge on a sparse one.
     const CLUSTER_SCALE_MAX = 40;
-    const tickHeightScale = d3.scaleSqrt().domain([1, CLUSTER_SCALE_MAX]).range([4, tickBandHeight / 2]).clamp(true);
-    const opacityScale = d3.scaleLinear().domain([1, CLUSTER_SCALE_MAX]).range([0.6, 1]).clamp(true);
+    const radiusScale = d3.scaleSqrt().domain([1, CLUSTER_SCALE_MAX]).range([BASE_R, MAX_R]).clamp(true);
+    const opacityScale = d3.scaleLinear().domain([1, CLUSTER_SCALE_MAX]).range([0.65, 1]).clamp(true);
 
     function clusterTooltipHtml(c: MarkerCluster) {
       const color = markerColor(c.direction);
@@ -331,28 +357,25 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
         </div>`;
     }
 
-    // Trade markers rendered as a thin strip of ticks below the axis — buys in the
-    // top half of the strip, sells in the bottom half — instead of dots sitting on
-    // the price line itself.
-    const tickG = g.append('g');
-    const midY = tickBandTop + tickBandHeight / 2;
+    // Markers group is appended after the overlay rect so it paints on top and
+    // can receive its own pointer/focus events instead of the overlay eating them.
+    const markerG = g.append('g').attr('class', 'markers');
 
-    tickG
-      .selectAll('.trade-tick')
+    // Trade markers — hit target is bigger than the painted dot (>=24px) regardless of
+    // how small the dot itself renders.
+    const markerSel = markerG
+      .selectAll<SVGCircleElement, MarkerCluster>('.trade-hit')
       .data(clusters)
       .enter()
-      .append('rect')
-      .attr('class', 'trade-tick')
-      .attr('x', (d) => d.px - 1.5)
-      .attr('width', 3)
-      .attr('rx', 1.5)
-      .attr('y', (d) => (d.direction === 'sell' ? midY + 1 : midY - 1 - tickHeightScale(d.count)))
-      .attr('height', (d) => tickHeightScale(d.count))
-      .attr('fill', (d) => markerColor(d.direction))
-      .attr('fill-opacity', (d) => opacityScale(d.count))
+      .append('circle')
+      .attr('class', 'trade-hit')
+      .attr('cx', (d) => d.px)
+      .attr('cy', (d) => d.py)
+      .attr('r', (d) => Math.max(12, radiusScale(d.count) + 6))
+      .attr('fill', 'transparent')
       .style('cursor', 'pointer')
       .on('pointerenter', function (event, d) {
-        d3.select(this).attr('fill-opacity', 1);
+        d3.select(this.previousSibling as SVGCircleElement | null).attr('r', radiusScale(d.count) + 2);
         crosshair.attr('x1', d.px).attr('x2', d.px).style('opacity', 1);
         tooltip
           .style('opacity', '1')
@@ -361,10 +384,28 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
           .html(clusterTooltipHtml(d));
       })
       .on('pointerleave', function (_event, d) {
-        d3.select(this).attr('fill-opacity', opacityScale(d.count));
+        d3.select(this.previousSibling as SVGCircleElement | null).attr('r', radiusScale(d.count));
         crosshair.style('opacity', 0);
         hideTooltip();
       });
+
+    // Visible marker dot drawn before the hit target so the hit target sits on top for events.
+    markerSel.each(function (d) {
+      const node = d3.select(this);
+      const parent = d3.select(this.parentNode as SVGGElement);
+      parent
+        .insert('circle', () => node.node())
+        .attr('class', 'trade-dot')
+        .attr('cx', d.px)
+        .attr('cy', d.py)
+        .attr('r', radiusScale(d.count))
+        .attr('fill', markerColor(d.direction))
+        .attr('fill-opacity', opacityScale(d.count))
+        .attr('stroke', 'var(--color-bg)')
+        .attr('stroke-width', 1.5)
+        .style('pointer-events', 'none')
+        .style('transition', 'r 0.15s ease');
+    });
   }, [series, markers, ticker]);
 
   if (series.length === 0) {
@@ -388,11 +429,11 @@ export default function StockPriceChart({ ticker, priceHistory, priceInterval, t
       {markers.length === 0 && <p className="mt-2 text-center text-xs text-(--color-text-muted)">No trades match the current filter.</p>}
       <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs">
         <div className="flex items-center gap-2">
-          <span className="inline-block h-2.5 w-1.5 rounded-full bg-(--color-positive)" />
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-(--color-positive)" />
           <span className="text-(--color-text-secondary)">Purchases</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-block h-2.5 w-1.5 rounded-full bg-(--color-negative)" />
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-(--color-negative)" />
           <span className="text-(--color-text-secondary)">Sales</span>
         </div>
       </div>

@@ -69,6 +69,23 @@ function tradeDirection(type: string | null): 'buy' | 'sell' | 'other' {
   return 'other';
 }
 
+// Preset windows instead of picking exact years — the standard brokerage-app pattern.
+const RANGE_OPTIONS = ['1M', '3M', '6M', 'YTD', '1Y', '5Y', 'MAX'] as const;
+type RangeKey = (typeof RANGE_OPTIONS)[number];
+
+// Returns the ISO cutoff date for a range (null for MAX, meaning no lower bound).
+function rangeStartIso(range: RangeKey): string | null {
+  if (range === 'MAX') return null;
+  const d = new Date();
+  if (range === '1M') d.setMonth(d.getMonth() - 1);
+  else if (range === '3M') d.setMonth(d.getMonth() - 3);
+  else if (range === '6M') d.setMonth(d.getMonth() - 6);
+  else if (range === 'YTD') { d.setMonth(0); d.setDate(1); }
+  else if (range === '1Y') d.setFullYear(d.getFullYear() - 1);
+  else if (range === '5Y') d.setFullYear(d.getFullYear() - 5);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function StockDetailPage() {
   const { ticker } = useParams<{ ticker: string }>();
   const router = useRouter();
@@ -76,7 +93,7 @@ export default function StockDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [tradeFilter, setTradeFilter] = useState<'all' | 'buy' | 'sell'>('all');
-  const [yearRange, setYearRange] = useState<{ start: number | null; end: number | null }>({ start: null, end: null });
+  const [rangeKey, setRangeKey] = useState<RangeKey>('MAX');
 
   useEffect(() => {
     if (!ticker) return;
@@ -86,17 +103,6 @@ export default function StockDetailPage() {
         const json = await r.json();
         if (!json || !Array.isArray(json.trades)) { setNotFound(true); setLoading(false); return; }
         setData(json);
-        // Derive the initial full year range from the same response instead of a
-        // second effect reacting to `data` — one fewer render, and avoids setState
-        // synchronously inside an effect body.
-        const years = Array.from(
-          new Set(
-            (json.trades as Trade[])
-              .filter((t) => t.trade_date)
-              .map((t) => new Date(`${t.trade_date}T00:00:00`).getFullYear())
-          )
-        ).sort((a, b) => a - b);
-        setYearRange(years.length > 0 ? { start: years[0], end: years[years.length - 1] } : { start: null, end: null });
         setLoading(false);
       })
       .catch(() => { setNotFound(true); setLoading(false); });
@@ -122,36 +128,17 @@ export default function StockDetailPage() {
   const buyPct = data.totalAmount > 0 ? (data.buyAmount / data.totalAmount) * 100 : 0;
   const sellPct = data.totalAmount > 0 ? (data.sellAmount / data.totalAmount) * 100 : 0;
 
-  // Get available years from trades
-  const availableYears = Array.from(
-    new Set(
-      data.trades
-        .filter((t) => t.trade_date)
-        .map((t) => new Date(`${t.trade_date}T00:00:00`).getFullYear())
-    )
-  ).sort((a, b) => a - b);
-
-  const minYear = availableYears[0] ?? null;
-  const maxYear = availableYears[availableYears.length - 1] ?? null;
-  const rangeStart = yearRange.start ?? minYear;
-  const rangeEnd = yearRange.end ?? maxYear;
+  const minDate = rangeStartIso(rangeKey);
 
   const filteredTrades = data.trades.filter((t) => {
     if (tradeFilter !== 'all' && tradeDirection(t.trade_type) !== tradeFilter) return false;
-    if (yearRange.start !== null && yearRange.end !== null && t.trade_date) {
-      const year = new Date(`${t.trade_date}T00:00:00`).getFullYear();
-      if (year < yearRange.start || year > yearRange.end) return false;
-    }
+    if (minDate && t.trade_date && t.trade_date < minDate) return false;
     return true;
   });
 
-  // The price line only respects the year-range filter — never the buy/sell filter,
+  // The price line only respects the date-range filter — never the buy/sell filter,
   // since price movement isn't a function of which trades the user chose to view.
-  const filteredPriceHistory = data.priceHistory.filter((p) => {
-    if (yearRange.start === null || yearRange.end === null) return true;
-    const year = new Date(`${p.date}T00:00:00`).getFullYear();
-    return year >= yearRange.start && year <= yearRange.end;
-  });
+  const filteredPriceHistory = data.priceHistory.filter((p) => !minDate || p.date >= minDate);
 
   function filterBtnClass(active: boolean): string {
     return `cursor-pointer rounded-sm border px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 ${
@@ -208,58 +195,15 @@ export default function StockDetailPage() {
           <StatCard label="Members" value={String(data.members.length)} sub="traded this stock" />
         </div>
 
-        {/* Year range filter */}
-        {availableYears.length > 0 && minYear !== null && maxYear !== null && (
-          <div className="flex max-w-xs flex-col gap-2 rounded-md border border-(--color-border) bg-white p-3">
-            <div className="grid grid-cols-2 gap-2.5">
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-(--color-text-secondary)">Start</span>
-                <select
-                  value={rangeStart ?? minYear}
-                  onChange={(e) => {
-                    const nextStart = parseInt(e.target.value, 10);
-                    setYearRange((prev) => {
-                      const safeEnd = prev.end ?? maxYear;
-                      return { start: Math.min(nextStart, safeEnd), end: safeEnd };
-                    });
-                  }}
-                  className="rounded-sm border border-(--color-border) bg-(--color-bg-subtle) px-2.5 py-1.5 text-[13px] font-semibold text-foreground"
-                >
-                  {availableYears
-                    .filter((year) => rangeEnd === null || year <= rangeEnd)
-                    .map((year) => (
-                      <option key={`start-${year}`} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-(--color-text-secondary)">End</span>
-                <select
-                  value={rangeEnd ?? maxYear}
-                  onChange={(e) => {
-                    const nextEnd = parseInt(e.target.value, 10);
-                    setYearRange((prev) => {
-                      const safeStart = prev.start ?? minYear;
-                      return { start: safeStart, end: Math.max(nextEnd, safeStart) };
-                    });
-                  }}
-                  className="rounded-sm border border-(--color-border) bg-(--color-bg-subtle) px-2.5 py-1.5 text-[13px] font-semibold text-foreground"
-                >
-                  {availableYears
-                    .filter((year) => rangeStart === null || year >= rangeStart)
-                    .map((year) => (
-                      <option key={`end-${year}`} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            </div>
-          </div>
-        )}
+        {/* Date range filter — brokerage-style preset windows */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-semibold text-(--color-text-secondary)">Range:</span>
+          {RANGE_OPTIONS.map((r) => (
+            <button key={r} onClick={() => setRangeKey(r)} className={filterBtnClass(rangeKey === r)}>
+              {r}
+            </button>
+          ))}
+        </div>
 
         {/* Trade type filter */}
         <div className="flex flex-wrap items-center gap-2">
