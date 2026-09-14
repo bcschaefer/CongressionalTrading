@@ -44,8 +44,6 @@ type StockDetail = {
   tradeCount: number;
   trades: Trade[];
   members: MemberSummary[];
-  priceHistory: PricePoint[];
-  priceInterval: '1d' | '1wk' | '1mo' | null;
 };
 
 function formatMoney(amount: number) {
@@ -94,6 +92,9 @@ export default function StockDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [tradeFilter, setTradeFilter] = useState<'all' | 'buy' | 'sell'>('all');
   const [rangeKey, setRangeKey] = useState<RangeKey>('MAX');
+  const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
+  const [priceInterval, setPriceInterval] = useState<'1d' | '1wk' | '1mo' | null>(null);
+  const [priceLoading, setPriceLoading] = useState(true);
 
   useEffect(() => {
     if (!ticker) return;
@@ -107,6 +108,25 @@ export default function StockDetailPage() {
       })
       .catch(() => { setNotFound(true); setLoading(false); });
   }, [ticker]);
+
+  // Price series is fetched from a separate, Prisma-free endpoint so switching ranges
+  // never adds to the database's operations usage — only Yahoo Finance + a local cache.
+  useEffect(() => {
+    if (!ticker) return;
+    let cancelled = false;
+    setPriceLoading(true);
+    fetch(`/api/stocks/${ticker.toUpperCase()}/price?range=${rangeKey}`)
+      .then(async (r) => {
+        if (!r.ok) return;
+        const json = await r.json();
+        if (cancelled || !json || !Array.isArray(json.priceHistory)) return;
+        setPriceHistory(json.priceHistory);
+        setPriceInterval(json.interval ?? null);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setPriceLoading(false); });
+    return () => { cancelled = true; };
+  }, [ticker, rangeKey]);
 
   if (loading) {
     return (
@@ -135,10 +155,6 @@ export default function StockDetailPage() {
     if (minDate && t.trade_date && t.trade_date < minDate) return false;
     return true;
   });
-
-  // The price line only respects the date-range filter — never the buy/sell filter,
-  // since price movement isn't a function of which trades the user chose to view.
-  const filteredPriceHistory = data.priceHistory.filter((p) => !minDate || p.date >= minDate);
 
   function filterBtnClass(active: boolean): string {
     return `cursor-pointer rounded-sm border px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 ${
@@ -220,12 +236,19 @@ export default function StockDetailPage() {
         </div>
 
         {/* Price chart */}
-        <StockPriceChart
-          ticker={data.ticker}
-          priceHistory={filteredPriceHistory}
-          priceInterval={data.priceInterval}
-          trades={filteredTrades}
-        />
+        <div className="relative">
+          <StockPriceChart
+            ticker={data.ticker}
+            priceHistory={priceHistory}
+            priceInterval={priceInterval}
+            trades={filteredTrades}
+          />
+          {priceLoading && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-md bg-white/60">
+              <p className="text-xs text-(--color-text-muted)">Loading price data…</p>
+            </div>
+          )}
+        </div>
 
         {/* Members who traded */}
         <div>
